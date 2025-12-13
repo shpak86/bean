@@ -1,0 +1,12 @@
+server:
+  address: :8080
+  static: /home/ash/projects/bean/js
+
+analysis:
+  rules: /home/ash/projects/bean/assets/rules.yaml
+  token: token
+  traces_length: 10
+  traces_ttl: 10m
+
+logger:
+  level: debug

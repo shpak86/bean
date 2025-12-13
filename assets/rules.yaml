@@ -1,0 +1,11 @@
+- when: mouseMoves == 0 && clicks == 0
+  then:
+      ai: 0.1
+      human: 0.2
+      scraper: -0.2
+
+- when: mouseMoves <= 10 && clicks == 0
+  then:
+      ai: -0.1
+      human: 0.2
+      scraper: -0.2

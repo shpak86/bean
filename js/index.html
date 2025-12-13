@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="ru">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Page</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: Arial, sans-serif;
+            background: #f5f5f5;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+
+        .input-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-weight: bold;
+        }
+
+        input[type="text"],
+        input[type="number"],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            font-size: 14px;
+            font-family: Arial, sans-serif;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        input[type="text"]:focus,
+        input[type="number"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #764ba2;
+        }
+
+        button:active {
+            transform: scale(0.98);
+        }
+
+        .output {
+            margin-top: 30px;
+            padding: 20px;
+            background: #f9f9f9;
+            border-left: 4px solid #667eea;
+            border-radius: 4px;
+            display: none;
+        }
+
+        .output.show {
+            display: block;
+        }
+
+        .output h2 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+
+        .output-content {
+            background: white;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            color: #333;
+            word-break: break-all;
+            white-space: pre-wrap;
+        }
+
+        .console {
+            margin-top: 30px;
+            background: #222;
+            color: #00ff00;
+            padding: 20px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .console-log {
+            margin-bottom: 5px;
+        }
+
+        .info {
+            background: #e7f3ff;
+            border-left: 4px solid #2196F3;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            color: #0c5aa0;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🧪 Test Page</h1>
+
+        <div class="info">
+            <strong>ℹ️ Инструкция:</strong> Откройте DevTools (F12) для просмотра консоли. Добавьте ваш скрипт в блок
+            &lt;script&gt; внизу страницы.
+        </div>
+
+        <div class="input-group">
+            <label for="input1">Input Text:</label>
+            <input type="text" id="input1" placeholder="Введите текст">
+        </div>
+
+        <div class="input-group">
+            <label for="input2">Input Number:</label>
+            <input type="number" id="input2" placeholder="Введите число" value="42">
+        </div>
+
+        <div class="input-group">
+            <label for="textarea">Textarea:</label>
+            <textarea id="textarea" placeholder="Введите многострочный текст"></textarea>
+        </div>
+
+        <button id="testBtn">Test Button</button>
+        <button id="clearBtn" style="background: #999; margin-left: 10px;">Clear Output</button>
+
+        <div id="output" class="output">
+            <h2>Output:</h2>
+            <div class="output-content" id="outputContent"></div>
+        </div>
+
+        <div class="console" id="console"></div>
+    </div>
+
+    <script>
+        // Перехватываем console.log
+        const consoleDiv = document.getElementById('console');
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+
+        function addConsoleLog(text, type = 'log') {
+            const logDiv = document.createElement('div');
+            logDiv.className = 'console-log';
+
+            if (type === 'error') {
+                logDiv.innerHTML = `<span style="color: #ff6b6b;">❌ ${text}</span>`;
+            } else if (type === 'warn') {
+                logDiv.innerHTML = `<span style="color: #ffd93d;">⚠️ ${text}</span>`;
+            } else {
+                logDiv.innerHTML = `<span style="color: #00ff00;">✓ ${text}</span>`;
+            }
+
+            consoleDiv.appendChild(logDiv);
+            consoleDiv.scrollTop = consoleDiv.scrollHeight;
+        }
+
+        console.log = function (...args) {
+            originalLog.apply(console, args);
+            addConsoleLog(args.join(' '), 'log');
+        };
+
+        console.error = function (...args) {
+            originalError.apply(console, args);
+            addConsoleLog(args.join(' '), 'error');
+        };
+
+        console.warn = function (...args) {
+            originalWarn.apply(console, args);
+            addConsoleLog(args.join(' '), 'warn');
+        };
+
+        // Test Button
+        document.getElementById('testBtn').addEventListener('click', function () {
+            const text = document.getElementById('input1').value;
+            const number = document.getElementById('input2').value;
+            const textarea = document.getElementById('textarea').value;
+
+            const output = document.getElementById('output');
+            const outputContent = document.getElementById('outputContent');
+
+            const result = {
+                text: text || 'empty',
+                number: number || 0,
+                textarea: textarea || 'empty',
+                timestamp: new Date().toLocaleTimeString(),
+            };
+
+            outputContent.textContent = JSON.stringify(result, null, 2);
+            output.classList.add('show');
+
+            console.log('Test clicked:', result);
+        });
+
+        // Clear Button
+        document.getElementById('clearBtn').addEventListener('click', function () {
+            document.getElementById('output').classList.remove('show');
+            consoleDiv.innerHTML = '';
+            console.log('Output cleared');
+        });
+
+        // Initial message
+        console.log('Ready to test! Click "Test Button" or add your own script.');
+        console.log('Use console.log() to output messages');
+    </script>
+    <script src="/static/collector.js"></script>
+    <script>
+        // Инициализация
+        const collector = new BehavioralMetricsCollector({
+            enableLogging: true,           // Логирование в консоль
+            reportInterval: 5000,         // Интервал отчётов (мс)
+            address: "/api/v1/trace",
+        });
+    </script>
+</body>
+
+</html>
