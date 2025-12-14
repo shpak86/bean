@@ -24,7 +24,7 @@ class BehavioralMetricsCollector {
       autoStart: options.autoStart !== false,
       enableLogging: options.enableLogging || false,
       reportInterval: options.reportInterval || 5000, // 5 seconds
-      excludeSelectors: options.excludeSelectors || [],
+      skipEmpty: options.skipEmpty !== false,
       address: options.address
     };
 
@@ -328,7 +328,8 @@ class BehavioralMetricsCollector {
    */
   startReportInterval() {
     this.reportIntervalId = setInterval(() => {
-      this.report();
+      // this.report();
+      this.sendToServer(this.options.address);
     }, this.options.reportInterval);
   }
 
@@ -456,7 +457,6 @@ class BehavioralMetricsCollector {
     const report = this.getMetrics();
     if (this.options.address && (report.mouseMoves || report.clicks || report.scrolls)) {
       this.log('Report sent:', report);
-      // this.sendToServer(this.options.address);
     }
     this.reset();
   }
@@ -499,16 +499,78 @@ class BehavioralMetricsCollector {
   }
 
   /**
-   * Send metrics to server
+   * Send metrics to server as a flat object
    */
   sendToServer(url) {
+
     const metrics = this.getMetrics();
+    if (this.options.skipEmpty && (metrics.clicks == 0 && metrics.mouseMoves == 0 && metrics.scrolls == 0)) {
+      return;
+    }
+
+    const calculated = metrics.calculated;
+
+    // Extract browser and OS details
+    const browserInfo = metrics.browser;
+    const browser = browserInfo.browser || { name: 'Unknown', version: 'unknown' };
+    const os = browserInfo.os || { name: 'Unknown', version: 'unknown' };
+
+    // Normalize deviceMemory: convert to number, default to 0 if 'unknown'
+    const deviceMemory = typeof browserInfo.deviceMemory === 'number'
+      ? browserInfo.deviceMemory
+      : 0;
+
+    // Prepare flat payload
+    const payload = {
+      // Behavior Metrics
+      mouseMoves: metrics.mouseMoves,
+      clicks: metrics.clicks,
+      clickTimingMin: calculated.clickTimingStats.min,
+      clickTimingMax: calculated.clickTimingStats.max,
+      clickTimingAvg: calculated.clickTimingStats.avg,
+      clickTimingCount: calculated.clickTimingStats.count,
+      scrolls: metrics.scrolls,
+      scrollTimingMin: calculated.scrollTimingStats.min,
+      scrollTimingMax: calculated.scrollTimingStats.max,
+      scrollTimingAvg: calculated.scrollTimingStats.avg,
+      scrollTimingCount: calculated.scrollTimingStats.count,
+      textInputEvents: metrics.textInputEvents,
+      textInputTimingMin: calculated.textInputTimingStats.min,
+      textInputTimingMax: calculated.textInputTimingStats.max,
+      textInputTimingAvg: calculated.textInputTimingStats.avg,
+      textInputTimingCount: calculated.textInputTimingStats.count,
+      sessionDuration: calculated.sessionDuration,
+
+      // Timestamp
+      timestamp: new Date().toISOString(),
+
+      // Browser and Device Info
+      userAgent: browserInfo.userAgent,
+      language: browserInfo.language,
+      platform: browserInfo.platform,
+      screenWidth: browserInfo.screenWidth,
+      screenHeight: browserInfo.screenHeight,
+      timezone: browserInfo.timezone,
+      cookiesEnabled: browserInfo.cookiesEnabled,
+      onLine: browserInfo.onLine,
+      deviceMemory: deviceMemory,
+      maxTouchPoints: browserInfo.maxTouchPoints,
+
+      // Browser Details
+      browserName: browser.name,
+      browserVersion: browser.version,
+
+      // OS Details
+      osName: os.name,
+      osVersion: os.version
+    };
+
     fetch(url, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json'
       },
-      body: JSON.stringify(metrics),
+      body: JSON.stringify(payload),
       keepalive: true
     })
       .then(response => {
@@ -521,7 +583,10 @@ class BehavioralMetricsCollector {
       .catch(error => {
         this.log('Error sending metrics:', error);
       });
+
+    this.reset();
   }
+
 }
 
 // Export for use as module or standalone
