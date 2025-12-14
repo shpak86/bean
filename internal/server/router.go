@@ -9,44 +9,43 @@ import (
 	"net/http"
 )
 
-// ApiV1Router управляет маршрутами для API версии 1.
-// Обрабатывает приём поведенческих трейсов, вычисление оценок и раздачу статики.
-// Все эндпоинты соответствуют REST-подобной структуре.
+// ApiV1Router manages routes for API version 1.
+// Handles receiving behavioral traces, calculating scores, and serving static files.
+// All endpoints follow a REST-like structure.
 type ApiV1Router struct {
-	// tracesRepo — хранилище для сохранения и получения поведенческих трейсов по токену.
+	// tracesRepo — storage for saving and retrieving behavioral traces by token.
 	tracesRepo *trace.TracesRepository
-
-	// scoreCalculator — компонент для вычисления оценок на основе трейсов и правил.
+	// scoreCalculator — component for calculating scores based on traces and rules.
 	scoreCalculator *score.RulesScoreCalculator
-
-	// static — путь к директории со статическими файлами (например, collector.js).
-	// Если пусто, раздача статики отключена.
+	// static — path to directory with static files (e.g., collector.js).
+	// If empty, static file serving is disabled.
 	static string
-
-	// tokenCookie — имя cookie, используемой для идентификации сессии при отправке трейсов.
+	// tokenCookie — name of cookie used for session identification when sending traces.
 	tokenCookie string
 }
 
-// Mux возвращает настроенный *http.ServeMux с зарегистрированными обработчиками.
-// Регистрирует следующие маршруты:
-//   - POST /api/v1/traces — приём нового трейса
-//   - GET /api/v1/scores/{token} — получение оценки по токену
-//   - GET /static/... — раздача статических файлов (если включено)
+// Mux returns a configured *http.ServeMux with registered handlers.
+// Registers the following routes:
+// - POST /api/v1/traces — receives new trace
+// - GET /api/v1/scores/{token} — retrieves score by token
+// - GET /static/... — serves static files (if enabled)
 func (ar *ApiV1Router) Mux() *http.ServeMux {
 	mux := http.NewServeMux()
 	mux.HandleFunc("POST /api/v1/traces", ar.traceHandler)
 	mux.HandleFunc("GET /api/v1/scores/{token}", ar.scoreHandler)
+
 	if len(ar.static) != 0 {
 		fs := http.FileServer(http.Dir(ar.static))
 		mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 	}
+
 	return mux
 }
 
-// traceHandler обрабатывает POST-запросы с поведенческими метриками.
-// Ожидает JSON-тело с данными трейса и cookie с именем, указанным в tokenCookie.
-// Если данные валидны, трейс сохраняется в хранилище.
-// В случае ошибки возвращает соответствующий HTTP-статус.
+// traceHandler handles POST requests with behavioral metrics.
+// Expects JSON body with trace data and cookie with name specified in tokenCookie.
+// If data is valid, trace is saved to storage.
+// On error, returns appropriate HTTP status.
 func (ar *ApiV1Router) traceHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -54,6 +53,7 @@ func (ar *ApiV1Router) traceHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
+
 	defer r.Body.Close()
 
 	var trace trace.Trace
@@ -63,6 +63,7 @@ func (ar *ApiV1Router) traceHandler(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
+
 	var token string
 	cookies := r.Cookies()
 	for _, cookie := range cookies {
@@ -71,6 +72,7 @@ func (ar *ApiV1Router) traceHandler(w http.ResponseWriter, r *http.Request) {
 			break
 		}
 	}
+
 	if len(token) == 0 {
 		slog.Warn("Empty trace token")
 		w.WriteHeader(http.StatusUnprocessableEntity)
@@ -81,10 +83,10 @@ func (ar *ApiV1Router) traceHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// scoreHandler обрабатывает запросы на получение оценки по токену.
-// Токен извлекается из пути URL: /api/v1/scores/{token}.
-// Если оценка найдена — возвращается в формате JSON.
-// Если нет — возвращается статус 404.
+// scoreHandler handles requests to retrieve score by token.
+// Token is extracted from URL path: /api/v1/scores/{token}.
+// If score is found — returns it in JSON format.
+// If not — returns status 404.
 func (ar *ApiV1Router) scoreHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	if len(token) == 0 {
@@ -110,14 +112,14 @@ func (ar *ApiV1Router) scoreHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write(body)
 }
 
-// NewApiV1Router создаёт новый маршрутизатор API v1.
-// Принимает:
-//   - static: путь к статике (может быть пустым)
-//   - tokenCookie: имя cookie для идентификации сессии
-//   - tracesRepo: хранилище трейсов
-//   - scoreCalculator: калькулятор оценок
+// NewApiV1Router creates a new API v1 router.
+// Parameters:
+// - static: path to static files (can be empty)
+// - tokenCookie: cookie name for session identification
+// - tracesRepo: trace storage
+// - scoreCalculator: score calculator
 //
-// Возвращает указатель на настроенный ApiV1Router.
+// Returns pointer to configured ApiV1Router.
 func NewApiV1Router(
 	static string,
 	tokenCookie string,

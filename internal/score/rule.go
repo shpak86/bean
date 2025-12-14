@@ -2,62 +2,63 @@ package score
 
 import (
 	"bean/internal/trace"
-
 	"github.com/google/cel-go/cel"
 )
 
-// Rule представляет собой правило для вычисления оценки на основе поведенческих трейсов.
-// Поле When содержит CEL-выражение, которое определяет условие срабатывания.
-// Поле Then содержит оценку (Score), которая будет применена, если условие истинно.
-// Программа CEL компилируется при вызове Init и используется при оценке трейсов.
+// Rule represents a rule for calculating a score based on behavioral traces.
+// The When field contains a CEL expression that defines the trigger condition.
+// The Then field contains a Score that will be applied if the condition is true.
+// The CEL program is compiled when Init is called and used during trace evaluation.
 type Rule struct {
-	// When — CEL-выражение, определяющее условие срабатывания правила.
-	// Должно возвращать логическое значение.
+	// When — CEL expression defining the rule trigger condition.
+	// Must return a boolean value.
 	When string `yaml:"when"`
-
-	// Then — оценка, которая будет добавлена к итоговому результату, если условие истинно.
+	// Then — score that will be added to the final result if the condition is true.
 	Then Score `yaml:"then"`
-
-	// program — скомпилированная CEL-программа, используется для выполнения условия.
+	// program — compiled CEL program used to execute the condition.
 	program cel.Program
 }
 
-// emptyScore — пустой объект Score, возвращаемый при неудачной оценке.
-// Используется для избежания аллокаций при возврате nil-оценки.
+// emptyScore — empty Score object returned on failed evaluation.
+// Used to avoid allocations when returning nil-score.
 var emptyScore = make(Score)
 
-// Init компилирует строковое выражение в поле When в исполняемую CEL-программу
-// с использованием переданного окружения env.
-// В случае синтаксических или семантических ошибок возвращает соответствующую ошибку.
-// После успешной инициализации правило готово к использованию в Eval.
+// Init compiles the string expression in the When field into an executable CEL program
+// using the provided env environment.
+// In case of syntax or semantic errors, returns the corresponding error.
+// After successful initialization, the rule is ready for use in Eval.
 func (r *Rule) Init(env *cel.Env) error {
 	ast, iss := env.Parse(r.When)
 	if iss.Err() != nil {
 		return iss.Err()
 	}
+
 	checked, iss := env.Check(ast)
 	if iss.Err() != nil {
 		return iss.Err()
 	}
+
 	var err error
 	r.program, err = env.Program(checked)
 	if err != nil {
 		return err
 	}
+
 	return nil
 }
 
-// Eval выполняет скомпилированное правило на переданном трейсе t.
-// Входной трейс преобразуется в map[string]any для совместимости с CEL.
-// Если выражение возвращает false или возникает ошибка выполнения, возвращается пустой Score.
-// Если условие истинно, возвращается значение из поля Then.
+// Eval executes the compiled rule on the provided trace t.
+// The input trace is converted to map[string]any for compatibility with CEL.
+// If the expression returns false or an execution error occurs, an empty Score is returned.
+// If the condition is true, the value from the Then field is returned.
 //
-// Важно: метод не возвращает ошибки в обычных случаях — при ошибках выполнения
-// возвращается пустой Score, чтобы не прерывать цепочку оценки.
+// Important: the method does not return errors in normal cases — on execution errors
+// an empty Score is returned to prevent interrupting the evaluation chain.
 func (r *Rule) Eval(t trace.Trace) (Score, error) {
 	result, _, err := r.program.Eval(map[string]any(t))
 	if err != nil || result.Value() == false {
 		return emptyScore, nil
 	}
+
 	return r.Then, nil
 }

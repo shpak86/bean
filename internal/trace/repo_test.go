@@ -4,15 +4,13 @@ import (
 	"sync"
 	"testing"
 	"time"
-
 	"github.com/stretchr/testify/assert"
 )
 
-// TestNewTracesRepository проверяет, что репозиторий создаётся с правильными параметрами
+// TestNewTracesRepository verifies that repository is created with correct parameters
 func TestNewTracesRepository(t *testing.T) {
 	length := 5
 	ttl := 10 * time.Minute
-
 	repo := NewTracesRepository(length, ttl)
 
 	assert.Equal(t, length, repo.length, "length should match")
@@ -21,7 +19,7 @@ func TestNewTracesRepository(t *testing.T) {
 	assert.Empty(t, repo.traces, "traces map should be empty initially")
 }
 
-// TestTracesRepository_Append проверяет добавление трейсов в буфер по ID
+// TestTracesRepository_Append verifies adding traces to buffer by ID
 func TestTracesRepository_Append(t *testing.T) {
 	repo := NewTracesRepository(2, 0)
 
@@ -29,18 +27,18 @@ func TestTracesRepository_Append(t *testing.T) {
 	trace2 := Trace{"MouseMoves": 5, "Clicks": 1}
 	trace3 := Trace{"MouseMoves": 7, "Clicks": 3}
 
-	// Добавляем два трейса — должно поместиться
+	// Add two traces — should fit
 	repo.Append("user1", trace1)
 	repo.Append("user1", trace2)
 
-	// Проверяем, что оба добавились
+	// Verify both were added
 	traces, ok := repo.Get("user1")
 	assert.True(t, ok, "expected traces for user1 to exist")
 	assert.Len(t, traces, 2)
 	assert.Equal(t, trace1, traces[0], "first trace should match")
 	assert.Equal(t, trace2, traces[1], "second trace should match")
 
-	// Добавляем третий — должен вытеснить первый
+	// Add third — should displace first
 	repo.Append("user1", trace3)
 
 	traces, _ = repo.Get("user1")
@@ -49,7 +47,7 @@ func TestTracesRepository_Append(t *testing.T) {
 	assert.Equal(t, trace3, traces[1], "after overwrite, second should be trace3")
 }
 
-// TestTracesRepository_Get проверяет получение трейсов по ID
+// TestTracesRepository_Get verifies retrieving traces by ID
 func TestTracesRepository_Get(t *testing.T) {
 	repo := NewTracesRepository(3, 0)
 
@@ -59,23 +57,24 @@ func TestTracesRepository_Get(t *testing.T) {
 	repo.Append("user1", trace1)
 	repo.Append("user1", trace2)
 
-	// Проверка существующего ID
+	// Check existing ID
 	traces, ok := repo.Get("user1")
 	assert.True(t, ok, "expected Get to return true for existing ID")
 	assert.Len(t, traces, 2)
 	assert.Equal(t, []Trace{trace1, trace2}, traces, "retrieved traces should match expected")
 
-	// Проверка несуществующего ID
+	// Check non-existent ID
 	_, ok = repo.Get("user2")
 	assert.False(t, ok, "expected Get to return false for non-existent ID")
 }
 
-// TestTracesRepository_ConcurrentAppend проверяет потокобезопасность Append
+// TestTracesRepository_ConcurrentAppend verifies Append thread-safety
 func TestTracesRepository_ConcurrentAppend(t *testing.T) {
 	repo := NewTracesRepository(100, 0)
 	iterations := 1000
 
 	var wg sync.WaitGroup
+
 	for i := 0; i < 10; i++ {
 		wg.Add(1)
 		go func(id string) {
@@ -92,19 +91,20 @@ func TestTracesRepository_ConcurrentAppend(t *testing.T) {
 
 	wg.Wait()
 
-	// Проверим, что все ID создали свои буферы
+	// Verify all IDs created their buffers
 	for i := 0; i < 10; i++ {
 		id := string(rune('A' + i))
 		traces, ok := repo.Get(id)
 		assert.True(t, ok, "expected traces for ID %s to exist", id)
 		assert.NotEmpty(t, traces, "expected non-empty traces for ID %s", id)
-		// Последний добавленный элемент должен быть с MouseMoves = iterations-1
+
+		// Last added element should have MouseMoves = iterations-1
 		last := traces[len(traces)-1]
 		assert.Equal(t, int32(iterations-1), last["MouseMoves"], "last MouseMoves should match for ID %s", id)
 	}
 }
 
-// TestTracesRepository_RepeatedAppend проверяет, что один и тот же ID использует один и тот же буфер
+// TestTracesRepository_RepeatedAppend verifies that same ID uses same buffer
 func TestTracesRepository_RepeatedAppend(t *testing.T) {
 	repo := NewTracesRepository(3, 0)
 
@@ -116,9 +116,10 @@ func TestTracesRepository_RepeatedAppend(t *testing.T) {
 	repo.Append("user1", trace1)
 	repo.Append("user1", trace2)
 	repo.Append("user1", trace3)
-	repo.Append("user1", trace4) // должен вытеснить trace1
+	repo.Append("user1", trace4) // should displace trace1
 
 	traces, ok := repo.Get("user1")
+
 	assert.True(t, ok, "expected traces for user1")
 	assert.Len(t, traces, 3)
 
@@ -126,13 +127,13 @@ func TestTracesRepository_RepeatedAppend(t *testing.T) {
 	assert.Equal(t, expected, traces, "traces should match expected sequence")
 }
 
-// TestTracesRepository_MultipleIDs проверяет независимость буферов для разных ID
+// TestTracesRepository_MultipleIDs verifies buffer independence for different IDs
 func TestTracesRepository_MultipleIDs(t *testing.T) {
 	repo := NewTracesRepository(2, 0)
 
 	repo.Append("user1", Trace{"MouseMoves": 1})
 	repo.Append("user1", Trace{"MouseMoves": 2})
-	repo.Append("user1", Trace{"MouseMoves": 3}) // вытеснит 1
+	repo.Append("user1", Trace{"MouseMoves": 3}) // will displace 1
 
 	repo.Append("user2", Trace{"MouseMoves": 10})
 	repo.Append("user2", Trace{"MouseMoves": 20})
@@ -147,6 +148,7 @@ func TestTracesRepository_MultipleIDs(t *testing.T) {
 		{"MouseMoves": 2},
 		{"MouseMoves": 3},
 	}
+
 	expected2 := []Trace{
 		{"MouseMoves": 10},
 		{"MouseMoves": 20},

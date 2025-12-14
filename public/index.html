@@ -1,10 +1,9 @@
 <!DOCTYPE html>
-<html lang="ru">
-
+<html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Test Page</title>
+    <title>🧪 Test Page</title>
     <style>
         * {
             margin: 0;
@@ -13,50 +12,63 @@
         }
 
         body {
-            font-family: Arial, sans-serif;
-            background: #f5f5f5;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
             padding: 20px;
         }
 
         .container {
-            max-width: 800px;
-            margin: 0 auto;
             background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 500px;
+            width: 100%;
             padding: 30px;
-            border-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
         }
 
-        h1 {
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 28px;
             color: #333;
-            margin-bottom: 20px;
+            margin-bottom: 10px;
         }
 
-        .input-group {
+        .header p {
+            font-size: 14px;
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .form-group {
             margin-bottom: 20px;
         }
 
         label {
             display: block;
+            font-weight: 600;
+            color: #333;
             margin-bottom: 8px;
-            color: #555;
-            font-weight: bold;
+            font-size: 14px;
         }
 
         input[type="text"],
         input[type="number"],
         textarea {
             width: 100%;
-            padding: 10px;
-            border: 1px solid #ddd;
-            border-radius: 4px;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
             font-size: 14px;
-            font-family: Arial, sans-serif;
-        }
-
-        textarea {
-            resize: vertical;
-            min-height: 100px;
+            font-family: inherit;
+            transition: border-color 0.3s;
         }
 
         input[type="text"]:focus,
@@ -64,202 +76,157 @@
         textarea:focus {
             outline: none;
             border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 100px;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 25px;
         }
 
         button {
-            background: #667eea;
-            color: white;
+            flex: 1;
+            padding: 12px;
             border: none;
-            padding: 12px 24px;
-            border-radius: 4px;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            font-size: 16px;
-            font-weight: bold;
-            transition: background 0.3s;
+            transition: all 0.3s;
         }
 
-        button:hover {
-            background: #764ba2;
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
         }
 
-        button:active {
-            transform: scale(0.98);
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.3);
         }
 
-        .output {
+        .btn-primary:active {
+            transform: translateY(0);
+        }
+
+        .btn-secondary {
+            background: #f5f5f5;
+            color: #333;
+            border: 2px solid #e0e0e0;
+        }
+
+        .btn-secondary:hover {
+            background: #e8e8e8;
+        }
+
+        .output-section {
             margin-top: 30px;
-            padding: 20px;
-            background: #f9f9f9;
-            border-left: 4px solid #667eea;
-            border-radius: 4px;
-            display: none;
+            padding-top: 20px;
+            border-top: 2px solid #e0e0e0;
         }
 
-        .output.show {
-            display: block;
-        }
-
-        .output h2 {
+        .output-label {
+            font-weight: 600;
             color: #333;
             margin-bottom: 10px;
-            font-size: 18px;
-        }
-
-        .output-content {
-            background: white;
-            padding: 15px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
             font-size: 14px;
-            color: #333;
-            word-break: break-all;
-            white-space: pre-wrap;
         }
 
-        .console {
-            margin-top: 30px;
-            background: #222;
-            color: #00ff00;
-            padding: 20px;
-            border-radius: 4px;
-            font-family: 'Courier New', monospace;
+        #output {
+            background: #f9f9f9;
+            border: 1px solid #e0e0e0;
+            border-radius: 6px;
+            padding: 12px;
+            min-height: 80px;
             font-size: 13px;
-            max-height: 200px;
-            overflow-y: auto;
+            color: #555;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Monaco', 'Courier New', monospace;
         }
 
-        .console-log {
-            margin-bottom: 5px;
-        }
-
-        .info {
-            background: #e7f3ff;
-            border-left: 4px solid #2196F3;
-            padding: 15px;
-            border-radius: 4px;
-            margin-bottom: 20px;
-            color: #0c5aa0;
+        .emoji {
+            font-size: 24px;
+            margin-right: 8px;
         }
     </style>
 </head>
-
 <body>
     <div class="container">
-        <h1>🧪 Test Page</h1>
-
-        <div class="info">
-            <strong>ℹ️ Инструкция:</strong> Откройте DevTools (F12) для просмотра консоли. Добавьте ваш скрипт в блок
-            &lt;script&gt; внизу страницы.
+        <div class="header">
+            <h1>🧪 Test Page</h1>
+            <p>ℹ️ Instructions:</p>
+            <p>Open DevTools (F12) to view the console. Add your script to the &lt;script&gt; block at the bottom of the page.</p>
         </div>
 
-        <div class="input-group">
-            <label for="input1">Input Text:</label>
-            <input type="text" id="input1" placeholder="Введите текст">
+        <form id="testForm">
+            <div class="form-group">
+                <label for="inputText">Text Input:</label>
+                <input type="text" id="inputText" placeholder="Enter text...">
+            </div>
+
+            <div class="form-group">
+                <label for="inputNumber">Number Input:</label>
+                <input type="number" id="inputNumber" placeholder="Enter number...">
+            </div>
+
+            <div class="form-group">
+                <label for="textarea">Text Area:</label>
+                <textarea id="textarea" placeholder="Enter multiple lines of text..."></textarea>
+            </div>
+
+            <div class="button-group">
+                <button type="button" class="btn-primary" onclick="handleTest()">Test Button</button>
+                <button type="button" class="btn-secondary" onclick="clearOutput()">Clear Output</button>
+            </div>
+        </form>
+
+        <div class="output-section">
+            <div class="output-label">Output:</div>
+            <div id="output">Results will appear here...</div>
         </div>
-
-        <div class="input-group">
-            <label for="input2">Input Number:</label>
-            <input type="number" id="input2" placeholder="Введите число" value="42">
-        </div>
-
-        <div class="input-group">
-            <label for="textarea">Textarea:</label>
-            <textarea id="textarea" placeholder="Введите многострочный текст"></textarea>
-        </div>
-
-        <button id="testBtn">Test Button</button>
-        <button id="clearBtn" style="background: #999; margin-left: 10px;">Clear Output</button>
-
-        <div id="output" class="output">
-            <h2>Output:</h2>
-            <div class="output-content" id="outputContent"></div>
-        </div>
-
-        <div class="console" id="console"></div>
     </div>
 
     <script>
-        // Перехватываем console.log
-        const consoleDiv = document.getElementById('console');
-        const originalLog = console.log;
-        const originalError = console.error;
-        const originalWarn = console.warn;
-
-        function addConsoleLog(text, type = 'log') {
-            const logDiv = document.createElement('div');
-            logDiv.className = 'console-log';
-
-            if (type === 'error') {
-                logDiv.innerHTML = `<span style="color: #ff6b6b;">❌ ${text}</span>`;
-            } else if (type === 'warn') {
-                logDiv.innerHTML = `<span style="color: #ffd93d;">⚠️ ${text}</span>`;
-            } else {
-                logDiv.innerHTML = `<span style="color: #00ff00;">✓ ${text}</span>`;
-            }
-
-            consoleDiv.appendChild(logDiv);
-            consoleDiv.scrollTop = consoleDiv.scrollHeight;
-        }
-
-        console.log = function (...args) {
-            originalLog.apply(console, args);
-            addConsoleLog(args.join(' '), 'log');
-        };
-
-        console.error = function (...args) {
-            originalError.apply(console, args);
-            addConsoleLog(args.join(' '), 'error');
-        };
-
-        console.warn = function (...args) {
-            originalWarn.apply(console, args);
-            addConsoleLog(args.join(' '), 'warn');
-        };
-
-        // Test Button
-        document.getElementById('testBtn').addEventListener('click', function () {
-            const text = document.getElementById('input1').value;
-            const number = document.getElementById('input2').value;
+        // Function to handle test event
+        function handleTest() {
+            const text = document.getElementById('inputText').value;
+            const number = document.getElementById('inputNumber').value;
             const textarea = document.getElementById('textarea').value;
 
             const output = document.getElementById('output');
-            const outputContent = document.getElementById('outputContent');
 
-            const result = {
-                text: text || 'empty',
-                number: number || 0,
-                textarea: textarea || 'empty',
-                timestamp: new Date().toLocaleTimeString(),
-            };
+            if (!text || !number || !textarea) {
+                output.textContent = 'Please fill in all fields!';
+                return;
+            }
 
-            outputContent.textContent = JSON.stringify(result, null, 2);
-            output.classList.add('show');
+            const result = `
+            Text Input: ${text}
+            Number Input: ${number}
+            Text Area: ${textarea}
+            Timestamp: ${new Date().toLocaleString('en-US')}
+            `;
 
-            console.log('Test clicked:', result);
-        });
+            output.textContent = result;
+            console.log('Test data:', { text, number, textarea });
+        }
 
-        // Clear Button
-        document.getElementById('clearBtn').addEventListener('click', function () {
-            document.getElementById('output').classList.remove('show');
-            consoleDiv.innerHTML = '';
-            console.log('Output cleared');
-        });
+        // Function to clear output
+        function clearOutput() {
+            document.getElementById('output').textContent = 'Results will appear here...';
+            document.getElementById('inputText').value = '';
+            document.getElementById('inputNumber').value = '';
+            document.getElementById('textarea').value = '';
+        }
 
-        // Initial message
-        console.log('Ready to test! Click "Test Button" or add your own script.');
-        console.log('Use console.log() to output messages');
-    </script>
-    <script src="/static/collector.js"></script>
-    <script>
-        // Инициализация
-        const collector = new BehavioralMetricsCollector({
-            enableLogging: true,    // Логирование в консоль
-            reportInterval: 2000,   // Интервал отчётов (мс)
-            skipEmpty: true,
-            address: "/api/v1/traces",
-        });
+        // Console message on page load
+        console.log('🧪 Test page loaded!');
     </script>
 </body>
-
 </html>

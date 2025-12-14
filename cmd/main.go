@@ -15,13 +15,12 @@ import (
 	"time"
 )
 
-// prepareLogger настраивает глобальный логгер с использованием slog.
-// Принимает строковый уровень логирования (например, "debug", "info", "warn", "error")
-// и устанавливает JSON-форматированный вывод на os.Stdout.
-// Если уровень не распознан, используется уровень Info по умолчанию.
+// prepareLogger configures the global logger using slog.
+// Accepts a log level string (e.g., "debug", "info", "warn", "error")
+// and sets up JSON-formatted output to os.Stdout.
+// If the level is not recognized, the Info level is used by default.
 func prepareLogger(level string) {
 	var logLevel slog.Level
-
 	switch strings.ToLower(level) {
 	case "debug":
 		logLevel = slog.LevelDebug
@@ -38,21 +37,22 @@ func prepareLogger(level string) {
 	handler := slog.NewJSONHandler(os.Stdout, &slog.HandlerOptions{
 		Level: logLevel,
 	})
-
 	logger := slog.New(handler)
 	slog.SetDefault(logger)
 }
 
-// При ошибках на этапе загрузки конфигурации, чтения правил или инициализации компонентов
-// приложение завершается с кодом 1.
+// On errors during config loading, rules reading, or component initialization,
+// the application exits with code 1.
 func main() {
 	configPath := flag.String("config", "/etc/bean/config.yaml", "configuration file")
 	flag.Parse()
+
 	config, err := configuration.LoadConfig(*configPath)
 	if err != nil {
 		slog.Error("Unable to load configuration", "error", err)
 		os.Exit(1)
 	}
+
 	prepareLogger(config.Logger.Level)
 
 	appCtx, appCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
@@ -66,11 +66,13 @@ func main() {
 		slog.Error("Unable to load rules", "error", err)
 		os.Exit(1)
 	}
+
 	scoreCalc, err := score.NewRulesScoreCalculator(content, tracesRepo)
 	if err != nil {
 		slog.Error("Unable to initialize score calculator", "error", err)
 		os.Exit(1)
 	}
+
 	srv := server.NewServer(
 		config.Server.Address,
 		config.Server.Static,
@@ -78,8 +80,10 @@ func main() {
 		tracesRepo,
 		scoreCalc,
 	)
+
 	go srv.ListenAndServe()
 	slog.Info("Server listening " + config.Server.Address)
+
 	<-appCtx.Done()
 
 	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), time.Second*10)
@@ -89,7 +93,7 @@ func main() {
 	if err != nil {
 		slog.Error("Server shutdown", "error", err)
 	}
-	slog.Info("Server stopped")
 
+	slog.Info("Server stopped")
 	tracesRepo.Stop()
 }

@@ -2,8 +2,8 @@ package trace
 
 import "github.com/google/cel-go/cel"
 
-// NewMovementTraceEnv создаёт и возвращает новое CEL-окружение (cel.Env), предварительно
-// настроенное с переменными, соответствующими полям поведенческого трейса.
+// NewMovementTraceEnv creates and returns a new CEL environment (cel.Env) pre-configured
+// with variables corresponding to the fields of a behavioral trace.
 func NewMovementTraceEnv() (*cel.Env, error) {
 	env, err := cel.NewEnv(
 		// Timestamp
@@ -44,8 +44,10 @@ func NewMovementTraceEnv() (*cel.Env, error) {
 		cel.Variable("osName", cel.StringType),
 		cel.Variable("osVersion", cel.StringType),
 	)
+
 	if err != nil {
 		return nil, err
 	}
+
 	return env, nil
 }

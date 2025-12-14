@@ -5,114 +5,121 @@ import (
 	"fmt"
 	"strings"
 	"time"
-
 	"github.com/spf13/viper"
 )
 
-// AppConfig представляет полную конфигурацию приложения.
-// Содержит настройки логгера, сервера и анализа поведенческих данных.
+// AppConfig represents the complete application configuration.
+// Contains settings for the logger, server, and behavioral analysis modules.
 type AppConfig struct {
-	// Logger — конфигурация компонента логгирования
+	// Logger — logger component configuration
 	Logger LoggerConfig `mapstructure:"logger"`
-	// Server — конфигурация HTTP-сервера
+	// Server — HTTP server configuration
 	Server ServerConfig `mapstructure:"server"`
-	// Analysis — конфигурация модуля анализа поведения
+	// Analysis — behavioral analysis module configuration
 	Analysis AnalysisConfig `mapstructure:"analysis"`
 }
 
-// LoggerConfig определяет настройки логгирования.
+// LoggerConfig defines logging settings.
 type LoggerConfig struct {
-	// Level — уровень логирования: debug, info, warn, warning, error.
-	// Значение чувствительно к регистру, но проверяется в нижнем регистре.
+	// Level — log level: debug, info, warn, warning, error.
+	// Value is case-insensitive but checked in lowercase.
 	Level string `mapstructure:"level"`
 }
 
-// ServerConfig содержит параметры HTTP-сервера.
+// ServerConfig contains HTTP server parameters.
 type ServerConfig struct {
-	// Address — адрес и порт, на котором будет запущен сервер (например, ":8080").
+	// Address — address and port where the server will listen (e.g., ":8080").
 	Address string `mapstructure:"address"`
-	// Static — путь к директории со статическими файлами, которые будут раздаваться сервером.
-	// Может быть пустым, если статика не требуется.
+	// Static — path to directory with static files served by the server.
+	// Can be empty if static serving is not required.
 	Static string `mapstructure:"static"`
 }
 
-// AnalysisConfig определяет параметры поведенческого анализа.
+// AnalysisConfig defines behavioral analysis parameters.
 type AnalysisConfig struct {
-	// Token — токен для аутентификации запросов к системе анализа.
-	// Должен быть задан, иначе конфигурация будет недействительной.
+	// Token — token for authenticating requests to the analysis system.
+	// Must be set, otherwise the configuration will be invalid.
 	Token string `mapstructure:"token"`
-	// Rules — путь к файлу с правилами анализа в формате YAML.
-	// Должен быть указан, чтобы система могла загрузить логику оценки.
+	// Rules — path to the file with analysis rules in YAML format.
+	// Must be specified for the system to load the scoring logic.
 	Rules string `mapstructure:"rules"`
-	// TracesLength — максимальное количество хранимых трейсов на один идентификатор.
-	// Используется в TracesRepository для ограничения размера буфера.
+	// TracesLength — maximum number of stored traces per identifier.
+	// Used in TracesRepository to limit buffer size.
 	TracesLength int `mapstructure:"traces_length"`
-	// TracesTtl — время жизни трейсов (time.Duration), после которого неактивные записи удаляются.
-	// Например: "5m", "1h", "24h".
+	// TracesTtl — lifetime of traces (time.Duration), after which inactive records are deleted.
+	// Example: "5m", "1h", "24h".
 	TracesTtl time.Duration `mapstructure:"traces_ttl"`
 }
 
-// Validate проверяет корректность всей конфигурации приложения.
-// Вызывает валидацию каждой вложенной структуры и возвращает первую обнаруженную ошибку.
-// Возвращает nil, если конфигурация валидна.
+// Validate checks the correctness of the entire application configuration.
+// Calls validation for each nested structure and returns the first detected error.
+// Returns nil if the configuration is valid.
 func (c *AppConfig) Validate() error {
 	if err := c.Logger.Validate(); err != nil {
 		return err
 	}
+
 	if err := c.Server.Validate(); err != nil {
 		return err
 	}
+
 	if err := c.Analysis.Validate(); err != nil {
 		return err
 	}
+
 	return nil
 }
 
-// Validate проверяет корректность конфигурации логгера.
-// Проверяет, что уровень логирования задан и является одним из поддерживаемых значений.
-// Поддерживаемые значения: debug, info, warn, warning, error (без учёта регистра).
+// Validate checks the correctness of the logger configuration.
+// Verifies that the log level is set and is one of the supported values.
+// Supported values: debug, info, warn, warning, error (case-insensitive).
 func (l *LoggerConfig) Validate() error {
 	if l.Level == "" {
 		return errors.New("logger.level: must be specified")
 	}
+
 	valid := map[string]bool{"debug": true, "info": true, "warn": true, "warning": true, "error": true}
 	if !valid[strings.ToLower(l.Level)] {
 		return fmt.Errorf("logger.level: unsupported level '%s'", l.Level)
 	}
+
 	return nil
 }
 
-// Validate проверяет корректность конфигурации сервера.
-// Проверяет, что адрес сервера задан.
+// Validate checks the correctness of the server configuration.
+// Verifies that the server address is set.
 func (n *ServerConfig) Validate() error {
 	if n.Address == "" {
 		return errors.New("server.address: must be specified")
 	}
+
 	return nil
 }
 
-// Validate проверяет корректность конфигурации анализа.
-// Проверяет, что указаны обязательные поля: Token и Rules.
+// Validate checks the correctness of the analysis configuration.
+// Verifies that required fields are set: Token and Rules.
 func (a *AnalysisConfig) Validate() error {
 	if a.Rules == "" {
 		return errors.New("analysis.rules: must be specified")
 	}
+
 	if a.Token == "" {
 		return errors.New("analysis.token: must be specified")
 	}
+
 	return nil
 }
 
-// LoadConfig загружает конфигурацию из указанного файла с использованием Viper.
-// Поддерживает YAML-формат. Также включает загрузку переменных окружения (AutomaticEnv),
-// которые могут переопределять значения из файла.
+// LoadConfig loads configuration from the specified file using Viper.
+// Supports YAML format. Also includes environment variable loading (AutomaticEnv),
+// which can override values from the file.
 //
-// Параметр configPath — путь к файлу конфигурации.
+// Parameter configPath — path to the configuration file.
 //
-// Возвращает указатель на AppConfig или ошибку, если:
-//   - файл не найден или недоступен
-//   - конфигурация имеет неверный формат
-//   - одна из секций не проходит валидацию
+// Returns a pointer to AppConfig or an error if:
+// - the file is not found or inaccessible
+// - the configuration has invalid format
+// - one of the sections fails validation
 func LoadConfig(configPath string) (*AppConfig, error) {
 	viper.SetConfigFile(configPath)
 	viper.SetConfigType("yaml")
