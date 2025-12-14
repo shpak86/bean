@@ -24,6 +24,7 @@ class BehavioralMetricsCollector {
       autoStart: options.autoStart !== false,
       enableLogging: options.enableLogging || false,
       reportInterval: options.reportInterval || 5000, // 5 seconds
+      skipEmpty: options.skipEmpty !== false,
       address: options.address
     };
 
@@ -456,7 +457,6 @@ class BehavioralMetricsCollector {
     const report = this.getMetrics();
     if (this.options.address && (report.mouseMoves || report.clicks || report.scrolls)) {
       this.log('Report sent:', report);
-      // this.sendToServer(this.options.address);
     }
     this.reset();
   }
@@ -502,7 +502,12 @@ class BehavioralMetricsCollector {
    * Send metrics to server as a flat object
    */
   sendToServer(url) {
+
     const metrics = this.getMetrics();
+    if (this.options.skipEmpty && (metrics.clicks == 0 && metrics.mouseMoves == 0 && metrics.scrolls == 0)) {
+      return;
+    }
+
     const calculated = metrics.calculated;
 
     // Extract browser and OS details
@@ -579,7 +584,7 @@ class BehavioralMetricsCollector {
         this.log('Error sending metrics:', error);
       });
 
-      this.reset();
+    this.reset();
   }
 
 }

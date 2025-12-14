@@ -254,9 +254,10 @@
     <script>
         // Инициализация
         const collector = new BehavioralMetricsCollector({
-            enableLogging: true,           // Логирование в консоль
-            reportInterval: 5000,         // Интервал отчётов (мс)
-            address: "/api/v1/trace",
+            enableLogging: true,    // Логирование в консоль
+            reportInterval: 2000,   // Интервал отчётов (мс)
+            skipEmpty: true,
+            address: "/api/v1/traces",
         });
     </script>
 </body>

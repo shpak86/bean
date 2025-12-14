@@ -15,6 +15,10 @@ import (
 	"time"
 )
 
+// prepareLogger настраивает глобальный логгер с использованием slog.
+// Принимает строковый уровень логирования (например, "debug", "info", "warn", "error")
+// и устанавливает JSON-форматированный вывод на os.Stdout.
+// Если уровень не распознан, используется уровень Info по умолчанию.
 func prepareLogger(level string) {
 	var logLevel slog.Level
 
@@ -39,6 +43,8 @@ func prepareLogger(level string) {
 	slog.SetDefault(logger)
 }
 
+// При ошибках на этапе загрузки конфигурации, чтения правил или инициализации компонентов
+// приложение завершается с кодом 1.
 func main() {
 	configPath := flag.String("config", "/etc/bean/config.yaml", "configuration file")
 	flag.Parse()
@@ -53,6 +59,7 @@ func main() {
 	defer appCancel()
 
 	tracesRepo := trace.NewTracesRepository(config.Analysis.TracesLength, config.Analysis.TracesTtl)
+	go tracesRepo.Serve()
 
 	content, err := os.ReadFile(config.Analysis.Rules)
 	if err != nil {
@@ -82,4 +89,7 @@ func main() {
 	if err != nil {
 		slog.Error("Server shutdown", "error", err)
 	}
+	slog.Info("Server stopped")
+
+	tracesRepo.Stop()
 }

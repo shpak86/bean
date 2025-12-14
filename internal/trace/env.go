@@ -2,12 +2,14 @@ package trace
 
 import "github.com/google/cel-go/cel"
 
+// NewMovementTraceEnv создаёт и возвращает новое CEL-окружение (cel.Env), предварительно
+// настроенное с переменными, соответствующими полям поведенческого трейса.
 func NewMovementTraceEnv() (*cel.Env, error) {
 	env, err := cel.NewEnv(
-		// --- Timestamp ---
+		// Timestamp
 		cel.Variable("timestamp", cel.StringType),
 
-		// --- Behavior Metrics ---
+		// Behavior Metrics
 		cel.Variable("mouseMoves", cel.IntType),
 		cel.Variable("clicks", cel.IntType),
 		cel.Variable("clickTimingMin", cel.IntType),
@@ -26,7 +28,7 @@ func NewMovementTraceEnv() (*cel.Env, error) {
 		cel.Variable("textInputTimingCount", cel.IntType),
 		cel.Variable("sessionDuration", cel.IntType),
 
-		// --- Browser and Device Info ---
+		// Browser and Device Info
 		cel.Variable("userAgent", cel.StringType),
 		cel.Variable("language", cel.StringType),
 		cel.Variable("platform", cel.StringType),
