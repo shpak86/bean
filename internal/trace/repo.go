@@ -6,30 +6,28 @@ import (
 	"time"
 )
 
-// TracesRepository — потокобезопасное хранилище трейсов с автоматической очисткой устаревших записей.
-// Для каждого идентификатора (id) поддерживается кольцевой буфер фиксированной длины.
-// Трейсы, которые не обновлялись дольше указанного времени жизни (TTL), удаляются фоновым процессом.
+// TracesRepository — a thread-safe storage for traces with automatic cleanup of outdated records.
+// For each identifier (id), a fixed-size ring buffer is maintained.
+// Traces that have not been updated longer than the specified TTL are deleted by a background process.
 //
-// Пример использования:
+// Example usage:
 //
-//	repo := trace.NewTracesRepository(10, 5*time.Minute)
-//	go repo.Serve()  // запуск фоновой очистки
-//	repo.Append("user-123", trace.Trace{"MouseMoves": 5})
+// repo := trace.NewTracesRepository(10, 5*time.Minute)
+// go repo.Serve() // start background cleanup
+// repo.Append("user-123", trace.Trace{"MouseMoves": 5})
 type TracesRepository struct {
-	length int           // максимальное количество трейсов на один идентификатор
-	ttl    time.Duration // время жизни трейса; после этого он считается устаревшим
-
-	traces        map[string]*utils.RingBuffer[Trace] // хранилище трейсов по ID
-	tracesUpdates map[string]time.Time                // время последнего обновления для каждого ID
-
-	cleanTicker *time.Ticker // тикер для периодической очистки
-	tracesMu    sync.RWMutex // мьютекс для защиты доступа к maps
+	length        int                                  // maximum number of traces per identifier
+	ttl           time.Duration                        // trace lifetime; after this it is considered outdated
+	traces        map[string]*utils.RingBuffer[Trace] // trace storage by ID
+	tracesUpdates map[string]time.Time                // last update time for each ID
+	cleanTicker   *time.Ticker                         // ticker for periodic cleanup
+	tracesMu      sync.RWMutex                         // mutex to protect access to maps
 }
 
-// Append добавляет трейс t в буфер, связанный с указанным идентификатором id.
-// Если для данного id ещё нет буфера, он создаётся автоматически.
-// Время последнего обновления для id обновляется при создании или первом добавлении.
-// Метод потокобезопасен.
+// Append adds trace t to the buffer associated with the specified identifier id.
+// If there is no buffer for the given id, it is created automatically.
+// The last update time for id is updated when creating or on first addition.
+// The method is thread-safe.
 func (tr *TracesRepository) Append(id string, t Trace) {
 	tr.tracesMu.RLock()
 	buffer, found := tr.traces[id]
@@ -37,44 +35,47 @@ func (tr *TracesRepository) Append(id string, t Trace) {
 
 	if !found {
 		tr.tracesMu.Lock()
-		// Повторная проверка под блокировкой (double-checked locking)
+		// Double-checked locking
 		if buffer, found = tr.traces[id]; !found {
 			buffer = utils.NewRingBuffer[Trace](tr.length)
 			tr.traces[id] = buffer
-			// Обновляем время последнего обновления
+			// Update last update time
 			tr.tracesUpdates[id] = time.Now()
 		}
 		tr.tracesMu.Unlock()
 	}
+
 	buffer.Push(t)
 }
 
-// Get возвращает копию всех трейсов для указанного идентификатора id в порядке от старых к новым.
-// Если трейсы для данного id отсутствуют, возвращается (nil, false).
-// Метод потокобезопасен.
+// Get returns a copy of all traces for the specified identifier id in order from old to new.
+// If traces for the given id are missing, returns (nil, false).
+// The method is thread-safe.
 func (tr *TracesRepository) Get(id string) ([]Trace, bool) {
 	tr.tracesMu.Lock()
 	defer tr.tracesMu.Unlock()
+
 	buffer, found := tr.traces[id]
 	if !found {
 		return nil, false
 	}
+
 	return buffer.ToSlice(), true
 }
 
-// Serve запускает фоновую горутину, которая периодически (раз в минуту) проверяет
-// и удаляет устаревшие трейсы — те, для которых с момента последнего обновления прошло больше, чем ttl.
-// Метод блокирует выполнение и должен вызываться в отдельной горутине:
+// Serve starts a background goroutine that periodically (once a minute) checks
+// and removes outdated traces — those where more than ttl has passed since the last update.
+// The method blocks execution and should be called in a separate goroutine:
 //
-//	go repo.Serve()
+// go repo.Serve()
 //
-// Для остановки используется метод Stop.
+// Use the Stop method to stop.
 func (tr *TracesRepository) Serve() {
 	tr.cleanTicker = time.NewTicker(time.Minute)
 	for range tr.cleanTicker.C {
 		var outdated []string
 
-		// Собираем список устаревших ID под read-блокировкой
+		// Collect list of outdated IDs under read lock
 		tr.tracesMu.RLock()
 		now := time.Now()
 		for id, ts := range tr.tracesUpdates {
@@ -84,7 +85,7 @@ func (tr *TracesRepository) Serve() {
 		}
 		tr.tracesMu.RUnlock()
 
-		// Удаляем устаревшие записи под write-блокировкой
+		// Delete outdated records under write lock
 		if len(outdated) > 0 {
 			tr.tracesMu.Lock()
 			for _, id := range outdated {
@@ -96,22 +97,22 @@ func (tr *TracesRepository) Serve() {
 	}
 }
 
-// Stop останавливает фоновую очистку, отменяя тикер.
-// Должен вызываться при завершении работы, чтобы избежать утечек ресурсов.
-// Метод безопасен для вызова даже если Serve ещё не запускался.
+// Stop stops background cleanup by stopping the ticker.
+// Should be called on shutdown to prevent resource leaks.
+// The method is safe to call even if Serve has not been started yet.
 func (tr *TracesRepository) Stop() {
 	if tr.cleanTicker != nil {
 		tr.cleanTicker.Stop()
 	}
 }
 
-// NewTracesRepository создаёт новый экземпляр хранилища трейсов.
-// Параметры:
-//   - length: максимальное количество трейсов, хранимых на один идентификатор (буфер переписывается по кругу).
-//   - ttl: время, после которого неактивные трейсы считаются устаревшими и удаляются фоновым процессом.
+// NewTracesRepository creates a new instance of trace storage.
+// Parameters:
+// - length: maximum number of traces stored per identifier (buffer rewrites in a circle).
+// - ttl: time after which inactive traces are considered outdated and removed by the background process.
 //
-// Возвращает указатель на новый экземпляр TracesRepository.
-// Для начала автоматической очистки необходимо вызвать Serve в отдельной горутине.
+// Returns a pointer to a new TracesRepository instance.
+// To start automatic cleanup, call Serve in a separate goroutine.
 func NewTracesRepository(length int, ttl time.Duration) *TracesRepository {
 	repo := TracesRepository{
 		length:        length,
@@ -119,5 +120,6 @@ func NewTracesRepository(length int, ttl time.Duration) *TracesRepository {
 		traces:        make(map[string]*utils.RingBuffer[Trace]),
 		tracesUpdates: make(map[string]time.Time),
 	}
+
 	return &repo
 }

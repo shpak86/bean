@@ -3,46 +3,44 @@ package score
 import (
 	"bean/internal/trace"
 	"log/slog"
-
 	"gopkg.in/yaml.v3"
 )
 
-// ScoreNotFoundError — ошибка, возвращаемая, когда для указанного идентификатора не найдено оценки.
-// Возникает в методе Score, если в репозитории трейсов отсутствуют данные для запрошенного id.
+// ScoreNotFoundError — error returned when no score is found for the specified identifier.
+// Occurs in the Score method if the trace repository contains no data for the requested id.
 type ScoreNotFoundError struct {
 	message string
 }
 
-// Error возвращает текстовое описание ошибки.
+// Error returns the text description of the error.
 func (sr *ScoreNotFoundError) Error() string {
 	return sr.message
 }
 
-// NewScoreNotFoundError создаёт новую ошибку типа ScoreNotFoundError для указанного идентификатора.
-// Используется для обозначения отсутствия данных о поведении для данного пользователя или сессии.
+// NewScoreNotFoundError creates a new ScoreNotFoundError for the specified identifier.
+// Used to indicate absence of behavior data for the given user or session.
 func NewScoreNotFoundError(id string) *ScoreNotFoundError {
 	return &ScoreNotFoundError{message: "score not found: " + id}
 }
 
-// RulesScoreCalculator — компонент для вычисления итоговой оценки на основе поведенческих трейсов
-// и набора правил, определённых в YAML-скрипте.
-// Каждый трейс оценивается по всем правилам, а результаты суммируются с ограничением в диапазоне [0.0, 1.0].
+// RulesScoreCalculator — component for calculating the final score based on behavioral traces
+// and a set of rules defined in a YAML script.
+// Each trace is evaluated against all rules, and the results are summed with a limit in the range [0.0, 1.0].
 type RulesScoreCalculator struct {
-	// tracesRepository — хранилище поведенческих трейсов, откуда загружаются данные по идентификатору.
+	// tracesRepository — storage of behavioral traces from which data is loaded by identifier.
 	tracesRepository *trace.TracesRepository
-
-	// rules — список правил, применяемых при вычислении оценки.
-	// Правила обрабатываются в порядке объявления; каждое может внести вклад в итоговую оценку.
+	// rules — list of rules applied when calculating the score.
+	// Rules are processed in declaration order; each can contribute to the final score.
 	rules []Rule
 }
 
-// Score вычисляет итоговую оценку для указанного идентификатора (например, сессии или пользователя).
-// Если трейсы для id не найдены, возвращается ошибка ScoreNotFoundError.
-// В противном случае оценка вычисляется путём последовательного применения всех правил
-// к каждому трейсу из истории. Результаты суммируются по ключам, при этом значения ограничиваются
-// диапазоном от 0.0 до 1.0 (усечение, а не обрезание за счёт насыщения).
+// Score calculates the final score for the specified identifier (e.g., session or user).
+// If traces for id are not found, returns a ScoreNotFoundError.
+// Otherwise, the score is calculated by sequentially applying all rules
+// to each trace from the history. Results are summed by key, with values limited
+// to the range from 0.0 to 1.0 (clamping, not clipping due to saturation).
 //
-// Логирование ошибок правил осуществляется через slog.Error, но не прерывает вычисление.
+// Rule errors are logged via slog.Error but do not interrupt the calculation.
 func (sc *RulesScoreCalculator) Score(id string) (Score, error) {
 	traces, found := sc.tracesRepository.Get(id)
 	if !found {
@@ -50,6 +48,7 @@ func (sc *RulesScoreCalculator) Score(id string) (Score, error) {
 	}
 
 	score := make(Score)
+
 	for _, trace := range traces {
 		for _, rule := range sc.rules {
 			delta, err := rule.Eval(trace)
@@ -57,8 +56,10 @@ func (sc *RulesScoreCalculator) Score(id string) (Score, error) {
 				slog.Error("rule eval", "error", err, "rule", rule, "trace", trace)
 				continue
 			}
+
 			for key, d := range delta {
 				newScore := score[key] + d
+
 				switch {
 				case newScore < 0.0:
 					score[key] = 0.0
@@ -74,39 +75,43 @@ func (sc *RulesScoreCalculator) Score(id string) (Score, error) {
 	return score, nil
 }
 
-// NewRulesScoreCalculator создаёт новый калькулятор оценок на основе YAML-скрипта с правилами
-// и ссылки на хранилище трейсов.
+// NewRulesScoreCalculator creates a new score calculator based on a YAML script with rules
+// and a reference to the trace storage.
 //
-// Скрипт должен содержать список правил в формате:
+// The script should contain a list of rules in the format:
 //
-//   - when: "MouseMoves > 10"
-//     then:
+// - when: "MouseMoves > 10"
+//   then:
 //     behavior: 0.5
 //
-// При создании:
-//   - Правила разбираются из YAML.
-//   - Для каждого правила создаётся и инициализируется CEL-программа.
+// During creation:
+// - Rules are parsed from YAML.
+// - For each rule, a CEL program is created and initialized.
 //
-// В случае синтаксических ошибок в YAML или CEL-выражениях возвращается соответствующая ошибка.
-// При успешной инициализации возвращается указатель на готовый к использованию калькулятор.
+// In case of syntax errors in YAML or CEL expressions, the corresponding error is returned.
+// On successful initialization, returns a pointer to a ready-to-use calculator.
 func NewRulesScoreCalculator(script []byte, tracesRepository *trace.TracesRepository) (*RulesScoreCalculator, error) {
 	calculator := RulesScoreCalculator{
 		tracesRepository: tracesRepository,
 		rules:            make([]Rule, 0),
 	}
+
 	err := yaml.Unmarshal(script, &calculator.rules)
 	if err != nil {
 		return nil, err
 	}
+
 	for i := range calculator.rules {
 		env, err := trace.NewMovementTraceEnv()
 		if err != nil {
 			return nil, err
 		}
+
 		err = calculator.rules[i].Init(env)
 		if err != nil {
 			return nil, err
 		}
 	}
+
 	return &calculator, nil
 }

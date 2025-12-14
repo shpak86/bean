@@ -2,9 +2,7 @@ package score
 
 import (
 	"testing"
-
 	"bean/internal/trace"
-
 	"github.com/google/cel-go/cel"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -59,12 +57,13 @@ func TestRule_Eval_TrueCondition(t *testing.T) {
 		When: "MouseMoves > 5",
 		Then: Score{"behavior": 0.5},
 	}
+
 	err = rule.Init(env)
 	require.NoError(t, err)
 
 	tt := trace.Trace{"MouseMoves": int32(10)}
-
 	score, err := rule.Eval(tt)
+
 	assert.NoError(t, err)
 	assert.Equal(t, Score{"behavior": 0.5}, score, "should return Then score when condition is true")
 }
@@ -79,12 +78,13 @@ func TestRule_Eval_FalseCondition(t *testing.T) {
 		When: "MouseMoves > 10",
 		Then: Score{"behavior": 0.5},
 	}
+
 	err = rule.Init(env)
 	require.NoError(t, err)
 
 	tt := trace.Trace{"MouseMoves": int32(5)}
-
 	score, err := rule.Eval(tt)
+
 	assert.NoError(t, err)
 	assert.Empty(t, score, "should return empty")
 }
@@ -99,13 +99,14 @@ func TestRule_Eval_UndefinedField(t *testing.T) {
 		When: "Clicks > 3",
 		Then: Score{"behavior": 0.7},
 	}
+
 	err = rule.Init(env)
 	require.NoError(t, err)
 
-	// Trace не содержит 'Clicks' — в CEL это будет error, но мы передаём map[string]any
+	// Trace doesn't contain 'Clicks' — in CEL this would be error, but we pass map[string]any
 	tt := trace.Trace{"MouseMoves": int32(10)}
-
 	score, err := rule.Eval(tt)
+
 	assert.NoError(t, err)
 	assert.Empty(t, score, "should return empty")
 }
@@ -122,10 +123,11 @@ func TestRule_Eval_ComplexCondition(t *testing.T) {
 		When: "MouseMoves > 5 && (Clicks > 2 || Scrolls > 1)",
 		Then: Score{"behavior": 0.9},
 	}
+
 	err = rule.Init(env)
 	require.NoError(t, err)
 
-	// Условие: MouseMoves > 5 и (Clicks > 2 или Scrolls > 1) → true
+	// Condition: MouseMoves > 5 and (Clicks > 2 or Scrolls > 1) → true
 	tt := trace.Trace{
 		"MouseMoves": int32(10),
 		"Clicks":     int32(1),
@@ -133,6 +135,7 @@ func TestRule_Eval_ComplexCondition(t *testing.T) {
 	}
 
 	score, err := rule.Eval(tt)
+
 	assert.NoError(t, err)
 	assert.Equal(t, Score{"behavior": 0.9}, score, "should evaluate complex condition correctly")
 }
@@ -147,12 +150,13 @@ func TestRule_Eval_NilTrace(t *testing.T) {
 		When: "MouseMoves > 5",
 		Then: Score{"behavior": 0.5},
 	}
+
 	err = rule.Init(env)
 	require.NoError(t, err)
 
 	var tt trace.Trace // nil map
-
 	score, err := rule.Eval(tt)
+
 	assert.NoError(t, err)
 	assert.Empty(t, score, "should return empty")
 }

@@ -8,41 +8,41 @@ import (
 	"time"
 )
 
-// Server инкапсулирует HTTP-сервер приложения, предоставляя контролируемый запуск и остановку.
-// Использует настраиваемый маршрутизатор и обеспечивает таймауты для безопасности и стабильности.
+// Server encapsulates the HTTP server of the application, providing controlled startup and shutdown.
+// Uses a customizable router and ensures timeouts for security and stability.
 type Server struct {
-	// server — встроенный HTTP-сервер из пакета net/http, полностью настроенный и готовый к работе.
+	// server — embedded HTTP server from net/http package, fully configured and ready to use.
 	server *http.Server
 }
 
-// ListenAndServe запускает HTTP-сервер и начинает прослушивание указанного адреса.
-// Блокирует выполнение до тех пор, пока сервер не будет остановлен или не возникнет ошибка.
-// Если сервер остановлен через Shutdown, метод вернёт http.ErrServerClosed.
+// ListenAndServe starts the HTTP server and begins listening on the specified address.
+// Blocks execution until the server is stopped or an error occurs.
+// If server is stopped via Shutdown, method returns http.ErrServerClosed.
 func (s *Server) ListenAndServe() error {
 	return s.server.ListenAndServe()
 }
 
-// Shutdown корректно останавливает сервер с переданным контекстом.
-// Завершает прослушивание, останавливает приём новых соединений и даёт активным соединениям
-// возможность завершиться в течение таймаута, указанного в контексте.
-// Должен вызываться при graceful shutdown приложения.
+// Shutdown gracefully stops the server with the provided context.
+// Stops listening, terminates accepting new connections, and allows active connections
+// to complete within the timeout specified in the context.
+// Should be called during graceful shutdown of the application.
 func (s *Server) Shutdown(ctx context.Context) error {
 	return s.server.Shutdown(ctx)
 }
 
-// NewServer создаёт и настраивает новый экземпляр сервера.
+// NewServer creates and configures a new server instance.
 //
-// Параметры:
-//   - address: адрес и порт для прослушивания (например, ":8080").
-//   - static: путь к директории со статическими файлами, которые будут раздаваться.
-//   - tokenCookie: имя cookie, используемой для аутентификации запросов.
-//   - tracesRepo: репозиторий для хранения и получения поведенческих трейсов.
-//   - scoreCalculator: калькулятор, используемый для вычисления оценок на основе трейсов.
+// Parameters:
+// - address: address and port to listen on (e.g., ":8080").
+// - static: path to directory with static files to be served.
+// - tokenCookie: name of cookie used for request authentication.
+// - tracesRepo: repository for storing and retrieving behavioral traces.
+// - scoreCalculator: calculator used for computing scores based on traces.
 //
-// Настраивает маршруты API v1, включая обработку статики и поведенческих метрик.
-// Устанавливает безопасные таймауты на чтение и запись, а также ограничение на заголовки.
+// Configures API v1 routes, including static file handling and behavioral metrics processing.
+// Sets secure timeouts for reading and writing, and limits header size.
 //
-// Возвращает указатель на готовый к запуску сервер.
+// Returns pointer to a ready-to-run server.
 func NewServer(
 	address string,
 	static string,
@@ -58,5 +58,6 @@ func NewServer(
 		WriteTimeout:   time.Second * 3,
 		MaxHeaderBytes: 1024 * 10,
 	}}
+
 	return &s
 }
