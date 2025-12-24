@@ -2,6 +2,7 @@ package main
 
 import (
 	"bean/internal/configuration"
+	"bean/internal/dataset"
 	"bean/internal/score"
 	"bean/internal/server"
 	"bean/internal/trace"
@@ -54,6 +55,10 @@ func main() {
 	}
 
 	prepareLogger(config.Logger.Level)
+	var datasetRepo dataset.DatasetRepository
+	if config.Dataset.File != "" {
+		datasetRepo = dataset.NewJsonDatasetRepository(config.Dataset.File, config.Dataset.Size, config.Dataset.Amount)
+	}
 
 	appCtx, appCancel := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
 	defer appCancel()
@@ -79,10 +84,11 @@ func main() {
 		config.Analysis.Token,
 		tracesRepo,
 		scoreCalc,
+		datasetRepo,
 	)
 
 	go srv.ListenAndServe()
-	slog.Info("Server listening " + config.Server.Address)
+	slog.Info("Server is listening " + config.Server.Address)
 
 	<-appCtx.Done()
 
@@ -96,4 +102,5 @@ func main() {
 
 	slog.Info("Server stopped")
 	tracesRepo.Stop()
+	datasetRepo.Close()
 }

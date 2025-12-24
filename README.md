@@ -103,6 +103,11 @@ analysis:
   rules: "/etc/bean/rules.yaml"
   traces_length: 100
   traces_ttl: "30m"
+
+dataset:
+  file: /var/log/bean/dataset.log
+  size: 1024
+  amount: 10
 ```
 
 ### logger
@@ -154,6 +159,22 @@ Supported units:
 - s — seconds
 - m — minutes
 - h — hours
+
+### dataset
+
+Dataset collection settings. This is optional parameter. If it is defined, then all received traces will be written to the dataset file.
+
+#### file
+
+Dataset file path
+
+#### size
+
+Maximum dataset file size.
+
+#### amount
+
+Amount of storing datasets.
 
 ### Environment Variables
 
