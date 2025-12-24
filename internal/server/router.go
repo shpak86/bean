@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bean/internal/dataset"
 	"bean/internal/score"
 	"bean/internal/trace"
 	"encoding/json"
@@ -22,6 +23,8 @@ type ApiV1Router struct {
 	static string
 	// tokenCookie — name of cookie used for session identification when sending traces.
 	tokenCookie string
+	// datasetRepo - repository for saving behavioral traces
+	datasetRepo dataset.DatasetRepository
 }
 
 // Mux returns a configured *http.ServeMux with registered handlers.
@@ -49,7 +52,7 @@ func (ar *ApiV1Router) Mux() *http.ServeMux {
 func (ar *ApiV1Router) traceHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
-		slog.Warn("Empty trace request body", "error", err)
+		slog.Warn("Empty trace request body", "error", err, "client", r.RemoteAddr)
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
@@ -59,7 +62,7 @@ func (ar *ApiV1Router) traceHandler(w http.ResponseWriter, r *http.Request) {
 	var trace trace.Trace
 	err = json.Unmarshal(body, &trace)
 	if err != nil {
-		slog.Warn("Unable to marshal trace request body", "error", err)
+		slog.Warn("Unable to marshal trace request body", "error", err, "client", r.RemoteAddr)
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
@@ -74,12 +77,17 @@ func (ar *ApiV1Router) traceHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if len(token) == 0 {
-		slog.Warn("Empty trace token")
+		slog.Warn("Empty trace token", "client", r.RemoteAddr)
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
 
+	slog.Debug("Trace request", "client", r.RemoteAddr, "token", token, "trace", trace)
+
 	ar.tracesRepo.Append(token, trace)
+	if ar.datasetRepo != nil {
+		ar.datasetRepo.Append(token, trace)
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -90,21 +98,23 @@ func (ar *ApiV1Router) traceHandler(w http.ResponseWriter, r *http.Request) {
 func (ar *ApiV1Router) scoreHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	if len(token) == 0 {
-		slog.Warn("Empty trace token")
+		slog.Warn("Empty trace token", "client", r.RemoteAddr)
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
 
 	score, err := ar.scoreCalculator.Score(token)
 	if err != nil {
-		slog.Warn("Score not found", "id", token, "error", err)
+		slog.Warn("Score not found", "id", token, "error", err, "client", r.RemoteAddr)
 		w.WriteHeader(http.StatusNotFound)
 		return
 	}
 
+	slog.Debug("Score request", "client", r.RemoteAddr, "token", token, "score", score)
+
 	body, err := json.Marshal(score)
 	if err != nil {
-		slog.Warn("Unable to marshal score", "error", err)
+		slog.Warn("Unable to marshal score", "error", err, "client", r.RemoteAddr)
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
@@ -125,11 +135,13 @@ func NewApiV1Router(
 	tokenCookie string,
 	tracesRepo *trace.TracesRepository,
 	scoreCalculator *score.RulesScoreCalculator,
+	datasetRepo dataset.DatasetRepository,
 ) *ApiV1Router {
 	return &ApiV1Router{
 		tracesRepo:      tracesRepo,
 		scoreCalculator: scoreCalculator,
 		static:          static,
 		tokenCookie:     tokenCookie,
+		datasetRepo:     datasetRepo,
 	}
 }

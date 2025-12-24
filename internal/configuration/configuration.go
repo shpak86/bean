@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 	"time"
+
 	"github.com/spf13/viper"
 )
 
 // AppConfig represents the complete application configuration.
-// Contains settings for the logger, server, and behavioral analysis modules.
 type AppConfig struct {
 	// Logger — logger component configuration
 	Logger LoggerConfig `mapstructure:"logger"`
@@ -17,6 +17,8 @@ type AppConfig struct {
 	Server ServerConfig `mapstructure:"server"`
 	// Analysis — behavioral analysis module configuration
 	Analysis AnalysisConfig `mapstructure:"analysis"`
+	// Dataset — behavioral dataset configuration
+	Dataset DatasetConfig `mapstructure:"dataset"`
 }
 
 // LoggerConfig defines logging settings.
@@ -51,6 +53,16 @@ type AnalysisConfig struct {
 	TracesTtl time.Duration `mapstructure:"traces_ttl"`
 }
 
+// DatasetConfig defines behavioral dataset parameters
+type DatasetConfig struct {
+	// Dataset file path (optional)
+	File string `mapstructure:"file"`
+	// Maximal dataset file size (default 100M)
+	Size int `mapstructure:"size"`
+	// Number of dataset files (default 20)
+	Amount int `mapstructure:"amount"`
+}
+
 // Validate checks the correctness of the entire application configuration.
 // Calls validation for each nested structure and returns the first detected error.
 // Returns nil if the configuration is valid.
@@ -81,6 +93,19 @@ func (l *LoggerConfig) Validate() error {
 	valid := map[string]bool{"debug": true, "info": true, "warn": true, "warning": true, "error": true}
 	if !valid[strings.ToLower(l.Level)] {
 		return fmt.Errorf("logger.level: unsupported level '%s'", l.Level)
+	}
+
+	return nil
+}
+
+// Validate dataset parameters
+func (d *DatasetConfig) Validate() error {
+	if d.Amount == 0 {
+		d.Amount = 20
+	}
+
+	if d.Size == 0 {
+		d.Size = 100
 	}
 
 	return nil

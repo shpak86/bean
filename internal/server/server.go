@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bean/internal/dataset"
 	"bean/internal/score"
 	"bean/internal/trace"
 	"context"
@@ -38,6 +39,7 @@ func (s *Server) Shutdown(ctx context.Context) error {
 // - tokenCookie: name of cookie used for request authentication.
 // - tracesRepo: repository for storing and retrieving behavioral traces.
 // - scoreCalculator: calculator used for computing scores based on traces.
+// - datasetRepo: repository for storing bahavioral traces
 //
 // Configures API v1 routes, including static file handling and behavioral metrics processing.
 // Sets secure timeouts for reading and writing, and limits header size.
@@ -49,8 +51,9 @@ func NewServer(
 	tokenCookie string,
 	tracesRepo *trace.TracesRepository,
 	scoreCalculator *score.RulesScoreCalculator,
+	datasetRepo dataset.DatasetRepository,
 ) *Server {
-	router := NewApiV1Router(static, tokenCookie, tracesRepo, scoreCalculator)
+	router := NewApiV1Router(static, tokenCookie, tracesRepo, scoreCalculator, datasetRepo)
 	s := Server{&http.Server{
 		Addr:           address,
 		Handler:        router.Mux(),
