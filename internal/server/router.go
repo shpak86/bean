@@ -2,7 +2,7 @@ package server
 
 import (
 	"bean/internal/dataset"
-	"bean/internal/score"
+	"bean/internal/score/scorer"
 	"bean/internal/trace"
 	"encoding/json"
 	"io"
@@ -16,8 +16,8 @@ import (
 type ApiV1Router struct {
 	// tracesRepo — storage for saving and retrieving behavioral traces by token.
 	tracesRepo *trace.TracesRepository
-	// scoreCalculator — component for calculating scores based on traces and rules.
-	scoreCalculator *score.RulesScoreCalculator
+	// todo
+	compositeScorer *scorer.CompositeScorer
 	// static — path to directory with static files (e.g., collector.js).
 	// If empty, static file serving is disabled.
 	static string
@@ -103,7 +103,7 @@ func (ar *ApiV1Router) scoreHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	score, err := ar.scoreCalculator.Score(token)
+	score, err := ar.compositeScorer.Score(token)
 	if err != nil {
 		slog.Warn("Score not found", "id", token, "error", err, "client", r.RemoteAddr)
 		w.WriteHeader(http.StatusNotFound)
@@ -134,12 +134,12 @@ func NewApiV1Router(
 	static string,
 	tokenCookie string,
 	tracesRepo *trace.TracesRepository,
-	scoreCalculator *score.RulesScoreCalculator,
+	compositeScorer *scorer.CompositeScorer,
 	datasetRepo dataset.DatasetRepository,
 ) *ApiV1Router {
 	return &ApiV1Router{
 		tracesRepo:      tracesRepo,
-		scoreCalculator: scoreCalculator,
+		compositeScorer: compositeScorer,
 		static:          static,
 		tokenCookie:     tokenCookie,
 		datasetRepo:     datasetRepo,
