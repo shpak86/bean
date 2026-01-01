@@ -4,6 +4,8 @@ import (
 	"bean/internal/configuration"
 	"bean/internal/dataset"
 	"bean/internal/score"
+	"bean/internal/score/rule"
+	"bean/internal/score/scorer"
 	"bean/internal/server"
 	"bean/internal/trace"
 	"context"
@@ -66,13 +68,15 @@ func main() {
 	tracesRepo := trace.NewTracesRepository(config.Analysis.TracesLength, config.Analysis.TracesTtl)
 	go tracesRepo.Serve()
 
-	content, err := os.ReadFile(config.Analysis.Rules)
+	rules, err := rule.LoadFromFile(config.Analysis.Rules, trace.NewMovementTraceEnv)
 	if err != nil {
-		slog.Error("Unable to load rules", "error", err)
+		slog.Error("Unable to load rules", "file", config.Analysis.Rules, "error", err)
 		os.Exit(1)
 	}
+	rulesScorer := scorer.NewRulesScorer(rules, -1.0, 1.0)
+	mlScorer := scorer.NewClientInputScorer("http://127.0.0.1:8000/batch", time.Minute)
 
-	scoreCalc, err := score.NewRulesScoreCalculator(content, tracesRepo)
+	compositeScorer := scorer.NewCompositeScorer([]score.TracesScorer{mlScorer, rulesScorer}, tracesRepo)
 	if err != nil {
 		slog.Error("Unable to initialize score calculator", "error", err)
 		os.Exit(1)
@@ -83,7 +87,7 @@ func main() {
 		config.Server.Static,
 		config.Analysis.Token,
 		tracesRepo,
-		scoreCalc,
+		compositeScorer,
 		datasetRepo,
 	)
 

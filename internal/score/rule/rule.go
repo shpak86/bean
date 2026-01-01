@@ -1,7 +1,9 @@
-package score
+package rule
 
 import (
+	"bean/internal/score"
 	"bean/internal/trace"
+
 	"github.com/google/cel-go/cel"
 )
 
@@ -14,14 +16,14 @@ type Rule struct {
 	// Must return a boolean value.
 	When string `yaml:"when"`
 	// Then — score that will be added to the final result if the condition is true.
-	Then Score `yaml:"then"`
+	Then score.Score `yaml:"then"`
 	// program — compiled CEL program used to execute the condition.
 	program cel.Program
 }
 
 // emptyScore — empty Score object returned on failed evaluation.
 // Used to avoid allocations when returning nil-score.
-var emptyScore = make(Score)
+var emptyScore = make(score.Score)
 
 // Init compiles the string expression in the When field into an executable CEL program
 // using the provided env environment.
@@ -54,7 +56,7 @@ func (r *Rule) Init(env *cel.Env) error {
 //
 // Important: the method does not return errors in normal cases — on execution errors
 // an empty Score is returned to prevent interrupting the evaluation chain.
-func (r *Rule) Eval(t trace.Trace) (Score, error) {
+func (r *Rule) Eval(t trace.Trace) (score.Score, error) {
 	result, _, err := r.program.Eval(map[string]any(t))
 	if err != nil || result.Value() == false {
 		return emptyScore, nil

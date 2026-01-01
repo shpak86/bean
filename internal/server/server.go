@@ -2,7 +2,7 @@ package server
 
 import (
 	"bean/internal/dataset"
-	"bean/internal/score"
+	"bean/internal/score/scorer"
 	"bean/internal/trace"
 	"context"
 	"net/http"
@@ -50,10 +50,10 @@ func NewServer(
 	static string,
 	tokenCookie string,
 	tracesRepo *trace.TracesRepository,
-	scoreCalculator *score.RulesScoreCalculator,
+	compositeScorer *scorer.CompositeScorer,
 	datasetRepo dataset.DatasetRepository,
 ) *Server {
-	router := NewApiV1Router(static, tokenCookie, tracesRepo, scoreCalculator, datasetRepo)
+	router := NewApiV1Router(static, tokenCookie, tracesRepo, compositeScorer, datasetRepo)
 	s := Server{&http.Server{
 		Addr:           address,
 		Handler:        router.Mux(),
