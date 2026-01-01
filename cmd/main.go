@@ -73,9 +73,10 @@ func main() {
 		slog.Error("Unable to load rules", "file", config.Analysis.Rules, "error", err)
 		os.Exit(1)
 	}
-
 	rulesScorer := scorer.NewRulesScorer(rules, -1.0, 1.0)
-	compositeScorer := scorer.NewCompositeScorer([]score.Scorer{rulesScorer}, tracesRepo)
+	mlScorer := scorer.NewClientInputScorer("http://127.0.0.1:8000/batch", time.Minute)
+
+	compositeScorer := scorer.NewCompositeScorer([]score.TracesScorer{mlScorer, rulesScorer}, tracesRepo)
 	if err != nil {
 		slog.Error("Unable to initialize score calculator", "error", err)
 		os.Exit(1)

@@ -7,10 +7,6 @@ import (
 
 type Score map[string]float32
 
-type TraceScorer interface {
-	Score(string) (Score, error)
-}
-
-type Scorer interface {
+type TracesScorer interface {
 	Score(ctx context.Context, traces []trace.Trace) (Score, error)
 }

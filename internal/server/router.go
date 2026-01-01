@@ -16,21 +16,26 @@ import (
 type ApiV1Router struct {
 	// tracesRepo — storage for saving and retrieving behavioral traces by token.
 	tracesRepo *trace.TracesRepository
-	// todo
+
+	// compositeScorer — service for calculating the final score based on traces.
 	compositeScorer *scorer.CompositeScorer
-	// static — path to directory with static files (e.g., collector.js).
+
+	// static — path to the directory with static files (e.g., collector.js).
 	// If empty, static file serving is disabled.
 	static string
-	// tokenCookie — name of cookie used for session identification when sending traces.
+
+	// tokenCookie — name of the cookie used for session identification when sending traces.
 	tokenCookie string
-	// datasetRepo - repository for saving behavioral traces
+
+	// datasetRepo — repository for saving traces to a dataset (e.g., to a file).
+	// Can be nil — in this case, no dataset logging occurs.
 	datasetRepo dataset.DatasetRepository
 }
 
 // Mux returns a configured *http.ServeMux with registered handlers.
 // Registers the following routes:
-// - POST /api/v1/traces — receives new trace
-// - GET /api/v1/scores/{token} — retrieves score by token
+// - POST /api/v1/traces — receives a new trace
+// - GET /api/v1/scores/{token} — retrieves a score by token
 // - GET /static/... — serves static files (if enabled)
 func (ar *ApiV1Router) Mux() *http.ServeMux {
 	mux := http.NewServeMux()
@@ -46,9 +51,15 @@ func (ar *ApiV1Router) Mux() *http.ServeMux {
 }
 
 // traceHandler handles POST requests with behavioral metrics.
-// Expects JSON body with trace data and cookie with name specified in tokenCookie.
-// If data is valid, trace is saved to storage.
-// On error, returns appropriate HTTP status.
+// Expects a JSON body with trace data and a cookie with the name specified in tokenCookie.
+// If data is valid, the trace is saved to storage.
+// On error, returns an appropriate HTTP status.
+//
+// Behavior:
+// - Reads the request body and parses it as trace.Trace.
+// - Looks for a cookie with the name ar.tokenCookie to identify the session.
+// - Saves the trace to tracesRepo and, if present, to datasetRepo.
+// - Returns 200 on success, 422 on validation/parsing errors.
 func (ar *ApiV1Router) traceHandler(w http.ResponseWriter, r *http.Request) {
 	body, err := io.ReadAll(r.Body)
 	if err != nil {
@@ -62,7 +73,7 @@ func (ar *ApiV1Router) traceHandler(w http.ResponseWriter, r *http.Request) {
 	var trace trace.Trace
 	err = json.Unmarshal(body, &trace)
 	if err != nil {
-		slog.Warn("Unable to marshal trace request body", "error", err, "client", r.RemoteAddr)
+		slog.Warn("Unable to unmarshal trace request body", "error", err, "client", r.RemoteAddr)
 		w.WriteHeader(http.StatusUnprocessableEntity)
 		return
 	}
@@ -91,10 +102,16 @@ func (ar *ApiV1Router) traceHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 }
 
-// scoreHandler handles requests to retrieve score by token.
-// Token is extracted from URL path: /api/v1/scores/{token}.
-// If score is found — returns it in JSON format.
-// If not — returns status 404.
+// scoreHandler handles requests to retrieve a score by token.
+// The token is extracted from the URL path: /api/v1/scores/{token}.
+// If the score is found, it is returned in JSON format.
+// If not, it returns 404.
+//
+// Behavior:
+// - Extracts the token from the request path.
+// - Calculates the score using compositeScorer.
+// - Serializes the result to JSON and sends it to the client.
+// - Returns an appropriate HTTP status on error.
 func (ar *ApiV1Router) scoreHandler(w http.ResponseWriter, r *http.Request) {
 	token := r.PathValue("token")
 	if len(token) == 0 {
@@ -123,13 +140,15 @@ func (ar *ApiV1Router) scoreHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewApiV1Router creates a new API v1 router.
-// Parameters:
-// - static: path to static files (can be empty)
-// - tokenCookie: cookie name for session identification
-// - tracesRepo: trace storage
-// - scoreCalculator: score calculator
 //
-// Returns pointer to configured ApiV1Router.
+// Parameters:
+//   - static: path to the directory with static files (can be empty)
+//   - tokenCookie: name of the cookie for session identification
+//   - tracesRepo: trace storage
+//   - compositeScorer: service for score calculation
+//   - datasetRepo: repository for dataset collection (can be nil)
+//
+// Returns a pointer to the configured ApiV1Router instance.
 func NewApiV1Router(
 	static string,
 	tokenCookie string,
