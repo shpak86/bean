@@ -44,6 +44,32 @@ func prepareLogger(level string) {
 	slog.SetDefault(logger)
 }
 
+// prepareScorers creates a list of scorers
+// Accepts list of scorers configurations.
+// Returns list of scorers.
+func prepareScorers(sc []configuration.ScorerConfig) []score.TracesScorer {
+	scorers := []score.TracesScorer{}
+	for i := range sc {
+		switch sc[i].Type {
+		case configuration.ScorerTypeML:
+			mlScorer := scorer.NewClientInputScorer(sc[i].Url, time.Second)
+			scorers = append(scorers, mlScorer)
+		case configuration.ScorerTypeRules:
+			rules, err := rule.LoadFromFile(sc[i].Rules, trace.NewMovementTraceEnv)
+			if err != nil {
+				slog.Error("Unable to load rules", "file", sc[i].Rules, "error", err)
+				os.Exit(1)
+			}
+			rulesScorer := scorer.NewRulesScorer(rules, -1.0, 1.0)
+			scorers = append(scorers, rulesScorer)
+		default:
+			slog.Error("Unknown scorer", "scorer", sc[i].Type)
+			os.Exit(1)
+		}
+	}
+	return scorers
+}
+
 // On errors during config loading, rules reading, or component initialization,
 // the application exits with code 1.
 func main() {
@@ -68,15 +94,8 @@ func main() {
 	tracesRepo := trace.NewTracesRepository(config.Analysis.TracesLength, config.Analysis.TracesTtl)
 	go tracesRepo.Serve()
 
-	rules, err := rule.LoadFromFile(config.Analysis.Rules, trace.NewMovementTraceEnv)
-	if err != nil {
-		slog.Error("Unable to load rules", "file", config.Analysis.Rules, "error", err)
-		os.Exit(1)
-	}
-	rulesScorer := scorer.NewRulesScorer(rules, -1.0, 1.0)
-	mlScorer := scorer.NewClientInputScorer("http://127.0.0.1:8000/batch", time.Minute)
-
-	compositeScorer := scorer.NewCompositeScorer([]score.TracesScorer{mlScorer, rulesScorer}, tracesRepo)
+	scorers := prepareScorers(config.Analysis.Scorers)
+	compositeScorer := scorer.NewCompositeScorer(scorers, tracesRepo)
 	if err != nil {
 		slog.Error("Unable to initialize score calculator", "error", err)
 		os.Exit(1)

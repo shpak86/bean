@@ -99,10 +99,15 @@ server:
   static: "./public"
 
 analysis:
-  token: "bean_session"
-  rules: "/etc/bean/rules.yaml"
-  traces_length: 100
-  traces_ttl: "30m"
+  token: token
+  traces_length: 10
+  traces_ttl: 10m
+  scorers:
+    - type: ml
+      model: default
+      url: http://127.0.0.1:8000
+    - type: rules
+      rules: /etc/bean/rules.yaml
 
 dataset:
   file: /var/log/bean/dataset.log
@@ -143,9 +148,21 @@ dataset:
 
 Имя cookie, используемое для идентификации сессии. Bean ожидает, что клиент (браузер) отправляет эту cookie в каждом запросе с трейсом. Это не секрет, а просто ключ для связывания данных сессии.
 
-#### rules (обязательный)
+#### scorers (обязательный)
 
-Путь к файлу с правилами анализа в формате YAML. Файл должен существовать и содержать корректные правила на языке CEL.
+Список scorers выполняющих анализ. Scorers выполняют анализ в том порядке, в котором они указаны. Возможные типы: ML и rule scorer.
+Пример:
+
+```yaml
+- type: ml
+  model: default
+  url: http://127.0.0.1:8000
+
+- type: rules
+  rules: /etc/bean/rules.yaml
+```
+
+Для ML scorer необходимо указать URL сервиса инференса и имя модели. Для rule необходимо указать путь к файлу с правилами. Файл должен существовать и содержать корректные правила на языке CEL.
 
 #### traces_length
 

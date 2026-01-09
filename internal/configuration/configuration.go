@@ -3,10 +3,16 @@ package configuration
 import (
 	"errors"
 	"fmt"
+	"net/url"
 	"strings"
 	"time"
 
 	"github.com/spf13/viper"
+)
+
+const (
+	ScorerTypeML    = "ml"
+	ScorerTypeRules = "rules"
 )
 
 // AppConfig represents the complete application configuration.
@@ -37,14 +43,24 @@ type ServerConfig struct {
 	Static string `mapstructure:"static"`
 }
 
+type ScorerConfig struct {
+	// Type — scorer type
+	Type string `mapstructure:"type"`
+	// Model — path to the model file
+	Model string `mapstructure:"model"`
+	// URL — URL to the scorer service
+	Url string `mapstructure:"model"`
+	// Rules — path to the file with analysis rules in YAML format.
+	Rules string `mapstructure:"rules"`
+}
+
 // AnalysisConfig defines behavioral analysis parameters.
 type AnalysisConfig struct {
 	// Token — token for authenticating requests to the analysis system.
 	// Must be set, otherwise the configuration will be invalid.
 	Token string `mapstructure:"token"`
-	// Rules — path to the file with analysis rules in YAML format.
-	// Must be specified for the system to load the scoring logic.
-	Rules string `mapstructure:"rules"`
+	// Scorers — list of scorers
+	Scorers []ScorerConfig `mapstructure:"scorers"`
 	// TracesLength — maximum number of stored traces per identifier.
 	// Used in TracesRepository to limit buffer size.
 	TracesLength int `mapstructure:"traces_length"`
@@ -111,6 +127,27 @@ func (d *DatasetConfig) Validate() error {
 	return nil
 }
 
+// Validate checks the correctness of the scorer configuration.
+func (c *ScorerConfig) Validate() error {
+	switch c.Type {
+	case ScorerTypeML:
+		if len(c.Model) == 0 {
+			return errors.New("ML scorer: model name must be specified")
+		}
+		if _, err := url.Parse(c.Url); err != nil {
+			return errors.New("ML scorer: URL is incorrect")
+		}
+	case ScorerTypeRules:
+		if len(c.Rules) == 0 {
+			return errors.New("scorer rules: path must be specified")
+		}
+	default:
+		return errors.New("Scorer type must be specified")
+	}
+
+	return nil
+}
+
 // Validate checks the correctness of the server configuration.
 // Verifies that the server address is set.
 func (n *ServerConfig) Validate() error {
@@ -124,8 +161,14 @@ func (n *ServerConfig) Validate() error {
 // Validate checks the correctness of the analysis configuration.
 // Verifies that required fields are set: Token and Rules.
 func (a *AnalysisConfig) Validate() error {
-	if a.Rules == "" {
-		return errors.New("analysis.rules: must be specified")
+	if len(a.Scorers) == 0 {
+		return errors.New("analysis.scorers: must be specified")
+	}
+
+	for i := range a.Scorers {
+		if err := a.Scorers[i].Validate(); err != nil {
+			return err
+		}
 	}
 
 	if a.Token == "" {
