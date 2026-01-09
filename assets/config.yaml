@@ -3,10 +3,18 @@ server:
   static: /var/www/bean/static
 
 analysis:
-  rules: /etc/bean/rules.yaml
   token: token
   traces_length: 10
   traces_ttl: 10m
+  scorers:
+    - type: ml
+      model: default
+      url: http://127.0.0.1:8000
+    - type: rules
+      rules: /etc/bean/rules.yaml
 
 logger:
   level: info
+
+dataset:
+  file:  ml_dataset.json
