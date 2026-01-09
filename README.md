@@ -99,10 +99,15 @@ server:
   static: "./public"
 
 analysis:
-  token: "bean_session"
-  rules: "/etc/bean/rules.yaml"
-  traces_length: 100
-  traces_ttl: "30m"
+  token: token
+  traces_length: 10
+  traces_ttl: 10m
+  scorers:
+    - type: ml
+      model: default
+      url: http://127.0.0.1:8000
+    - type: rules
+      rules: /etc/bean/rules.yaml
 
 dataset:
   file: /var/log/bean/dataset.log
@@ -143,9 +148,21 @@ Behavioral analysis settings.
 
 Cookie name used for session identification. Bean expects the client (browser) to send this cookie with each trace request. This is not a secret, just a key for binding session data.
 
-#### rules (required)
+#### scorers (обязательный)
 
-Path to the file with analysis rules in YAML format. The file must exist and contain valid rules in CEL language.
+The list of scores performing the analysis. The scores perform the analysis in the order in which they are specified. Possible types: ML and rule.
+Example:
+
+```yaml
+- type: ml
+  model: default
+  url: http://127.0.0.1:8000
+
+- type: rules
+  rules: /etc/bean/rules.yaml
+```
+
+For ML scorer, you must specify the URL of the inference service and the model name. For rule, you must specify the path to the rules file. The file must exist and contain the correct rules in the CEL language.
 
 #### traces_length
 
