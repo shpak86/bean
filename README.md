@@ -1,10 +1,10 @@
 # Bean — Behavioral Metrics Analysis System
 
-Bean is a lightweight service for collecting, storing, and analyzing user behavioral metrics. It enables the detection and classification of automated behavior based on customizable rules.
+Bean is a lightweight framework for collecting, storing, and analyzing user behavioral metrics. It enables the detection and classification of automated behavior based on customizable rules and ML models.
 
 ## Overview
 
-On the client side, a JavaScript script collects user behavioral metrics (traces) and regularly sends them to the server. On the server side, metrics are aggregated and a score is calculated to classify user actions. Classification is performed based on flexible trace processing rules. The server provides a REST API that allows retrieving the score by user identifier.
+On the client side, a JavaScript script collects user behavioral metrics (traces) and regularly sends them to the server. On the server side, metrics are aggregated and a score is calculated to classify user actions. Classification uses both rule-based processing and ML model inference provided by the inference service. The server provides a REST API that allows retrieving the score by user identifier.
 
 ## Metrics
 
