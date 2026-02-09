@@ -49,7 +49,7 @@ type ScorerConfig struct {
 	// Model — path to the model file
 	Model string `mapstructure:"model"`
 	// URL — URL to the scorer service
-	Url string `mapstructure:"model"`
+	Url string `mapstructure:"url"`
 	// Rules — path to the file with analysis rules in YAML format.
 	Rules string `mapstructure:"rules"`
 }

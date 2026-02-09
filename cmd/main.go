@@ -52,7 +52,7 @@ func prepareScorers(sc []configuration.ScorerConfig) []score.TracesScorer {
 	for i := range sc {
 		switch sc[i].Type {
 		case configuration.ScorerTypeML:
-			mlScorer := scorer.NewClientInputScorer(sc[i].Url, time.Second)
+			mlScorer := scorer.NewClientInputScorer(sc[i].Url, time.Second, sc[i].Model)
 			scorers = append(scorers, mlScorer)
 		case configuration.ScorerTypeRules:
 			rules, err := rule.LoadFromFile(sc[i].Rules, trace.NewMovementTraceEnv)
@@ -96,10 +96,6 @@ func main() {
 
 	scorers := prepareScorers(config.Analysis.Scorers)
 	compositeScorer := scorer.NewCompositeScorer(scorers, tracesRepo)
-	if err != nil {
-		slog.Error("Unable to initialize score calculator", "error", err)
-		os.Exit(1)
-	}
 
 	srv := server.NewServer(
 		config.Server.Address,

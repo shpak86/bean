@@ -18,6 +18,7 @@ import (
 type ClientInputScorer struct {
 	url    string       // URL of the external service for sending traces
 	client *http.Client // HTTP client configured with timeout and context cancellation support
+	model  string       // model name for prediction
 }
 
 // Score sends the provided traces to an external ML service and returns the received score.
@@ -36,7 +37,7 @@ func (cis *ClientInputScorer) Score(ctx context.Context, traces []trace.Trace) (
 		return nil, err
 	}
 
-	req, _ := http.NewRequestWithContext(ctx, "POST", cis.url, bytes.NewReader(requestBody))
+	req, _ := http.NewRequestWithContext(ctx, "POST", cis.url+"/batch", bytes.NewReader(requestBody))
 	req.Header.Set("Content-Type", "application/json")
 	resp, err := cis.client.Do(req)
 	if err != nil {
@@ -69,7 +70,7 @@ func (cis *ClientInputScorer) Score(ctx context.Context, traces []trace.Trace) (
 //
 // Returns a pointer to the initialized scorer.
 // Internally uses *http.Client with the specified timeout to manage request duration.
-func NewClientInputScorer(url string, timeout time.Duration) *ClientInputScorer {
+func NewClientInputScorer(url string, timeout time.Duration, model string) *ClientInputScorer {
 	client := http.Client{
 		Timeout: timeout,
 	}
@@ -77,6 +78,7 @@ func NewClientInputScorer(url string, timeout time.Duration) *ClientInputScorer 
 	scorer := &ClientInputScorer{
 		url:    url,
 		client: &client,
+		model:  model,
 	}
 
 	return scorer
