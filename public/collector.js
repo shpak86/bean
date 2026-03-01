@@ -25,7 +25,8 @@ class BehavioralMetricsCollector {
       enableLogging: options.enableLogging || false,
       reportInterval: options.reportInterval || 5000, // 5 seconds
       skipEmpty: options.skipEmpty !== false,
-      address: options.address
+      address: options.address,
+      sessionIdCookie: options.clientIdCookie || "bean-session"
     };
 
     this.lastClickTime = null;
@@ -111,10 +112,18 @@ class BehavioralMetricsCollector {
     return { name: 'Unknown', version: 'unknown' };
   }
 
+  generateSessionCookie() {
+    const exists = document.cookie.split(';').find(it => it.trim().startsWith(this.options.sessionIdCookie));
+    if (!exists) {
+      document.cookie = this.options.sessionIdCookie + '=' + crypto.randomUUID() + "; path=/";
+    }
+  }
+
   /**
    * Start collecting metrics
    */
   start() {
+    this.generateSessionCookie();
     this.attachMouseMoveListener();
     this.attachClickListener();
     this.attachScrollListener();

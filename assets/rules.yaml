@@ -1,7 +1,7 @@
 - when: mouseMoves <= 20 && clicks >= 10
   then:
-    autiomation: 0.1
+    automation: 0.1
 
 - when: mouseMoves > 20 && clicks < 10
   then:
-    autiomation: -0.1
+    automation: -0.1
