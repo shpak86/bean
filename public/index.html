@@ -224,9 +224,17 @@
             document.getElementById('inputNumber').value = '';
             document.getElementById('textarea').value = '';
         }
-
         // Console message on page load
         console.log('🧪 Test page loaded!');
+    </script>
+    <script src="/static/collector.js"></script>
+    <script>
+        const collector = new BehavioralMetricsCollector({
+            enableLogging: true,   
+            reportInterval: 5000,
+            skipEmpty: true,
+            address: "/api/v1/traces",
+        });
     </script>
 </body>
 </html>

@@ -3,7 +3,7 @@ server:
   static: /var/www/bean/static
 
 analysis:
-  token: token
+  token: bean-session
   traces_length: 10
   traces_ttl: 10m
   scorers:
